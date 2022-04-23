@@ -1,7 +1,7 @@
+import asyncio
 import hashlib
 import random
 import socket
-import time
 
 from OpenNetLab.protocol.packet import *
 
@@ -10,58 +10,40 @@ class TCPServerNode:
         self.debug = True
         self.host = host
         self.port = port
-        self.id = self.generate_id()
+        self.id = self._generate_id()
         # receiving chunk sizee
         self.chunk_size = 4096
         # end of each transmission
         self.EOT_CHAR = 0x04.to_bytes(1, 'big')
+
+        self.loop = asyncio.get_event_loop()
+
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # bind socket to listen
-        self.sock.bind((self.host, self.port))
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # socket options
         self.sock.setblocking(False)
         self.sock.settimeout(10.0)
+        # bind socket to listen
+        self.sock.bind((self.host, self.port))
         # if socket type is TCP, wait for peer node's connection
-        self.debug_print('listen for connections')
+        self._debug_print('listen for connections')
 
         self.client_host = client_host
         self.client_port = client_port
         self.sock.listen(1)
-        self.receive_client_connection()
 
-    def receive_client_connection(self):
-        while True:
-            conn, addr = self.sock.accept()
-            if addr[0] == self.client_host or addr[1] == self.client_port:
-                self.debug_print('recieve connection from %s:%d' % addr)
-                self.conn = conn
-                break
-            else:
-                conn.close()
-
-    def generate_id(self):
-        uid = hashlib.sha256()
-        t = self.host + str(self.port) + str(random.randint(1, 99999999))
-        uid.update(t.encode('ascii'))
-        return uid.hexdigest()
-
-    def debug_print(self, msg):
-        if self.debug:
-            print(msg)
-
-    def run(self):
+    async def run(self):
+        await self._receive_client_connection()
         ending = False
         buffer = b''
         chunk = b''
-        self.debug_print('waiting for message from client')
+        self._debug_print('waiting for message from client')
         while not ending:
             try:
-                chunk = self.conn.recv(self.chunk_size)
+                chunk = await self.loop.sock_recv(self.conn, self.chunk_size)
             except socket.timeout:
-                self.debug_print('node_connection: timeout')
+                self._debug_print('node_connection: timeout')
             except Exception as e:
-                self.debug_print('unexpected error: ' + str(e))
+                self._debug_print('unexpected error: ' + str(e))
 
             if chunk != b'':
                 buffer += chunk
@@ -74,15 +56,36 @@ class TCPServerNode:
                         ending = True
                         break
                     elif packet.packet_type == ONLPacket.EXPIREMENT_DATA:
-                        self.recv_callback(packet.payload)
+                        await self.recv_callback(packet.payload)
                         eot_pos = buffer.find(self.EOT_CHAR)
                     else:
                         break
-            time.sleep(0.01)
+            await asyncio.sleep(0.1)
 
-    def send(self, data):
-        if self.conn is not None:
-            self.conn.sendall(ONLPacket(ONLPacket.EXPIREMENT_DATA, data).to_bytes())
-
-    def recv_callback(self, data):
+    async def recv_callback(self, data):
         pass
+
+    async def _receive_client_connection(self):
+        while True:
+            conn, addr = await self.loop.sock_accept(self.sock)
+            if addr[0] == self.client_host or addr[1] == self.client_port:
+                self._debug_print('recieve connection from %s:%d' % addr)
+                self.conn = conn
+                break
+            else:
+                conn.close()
+
+    def _generate_id(self):
+        uid = hashlib.sha256()
+        t = self.host + str(self.port) + str(random.randint(1, 99999999))
+        uid.update(t.encode('ascii'))
+        return uid.hexdigest()
+
+    def _debug_print(self, msg):
+        if self.debug:
+            print(msg)
+
+    async def _send(self, data):
+        if self.conn is not None:
+            await self.loop.sock_sendall(self.sock, ONLPacket(ONLPacket.EXPIREMENT_DATA, data).to_bytes())
+
