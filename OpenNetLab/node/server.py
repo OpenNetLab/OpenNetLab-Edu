@@ -5,6 +5,9 @@ import socket
 
 from OpenNetLab.protocol.packet import *
 
+def override(f):
+    return f
+
 class TCPServerNode:
     def __init__(self, host, port, client_host, client_port) -> None:
         self.debug = True
@@ -62,8 +65,13 @@ class TCPServerNode:
                         break
             await asyncio.sleep(0.1)
 
+    @override
     async def recv_callback(self, data):
         pass
+
+    async def send(self, data):
+        if self.conn is not None:
+            await self.loop.sock_sendall(self.conn, ONLPacket(ONLPacket.EXPIREMENT_DATA, data).to_bytes() + self.EOT_CHAR)
 
     async def _receive_client_connection(self):
         while True:
@@ -84,8 +92,4 @@ class TCPServerNode:
     def _debug_print(self, msg):
         if self.debug:
             print(msg)
-
-    async def _send(self, data):
-        if self.conn is not None:
-            await self.loop.sock_sendall(self.sock, ONLPacket(ONLPacket.EXPIREMENT_DATA, data).to_bytes())
 
