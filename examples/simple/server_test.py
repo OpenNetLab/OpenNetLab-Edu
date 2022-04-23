@@ -5,6 +5,7 @@ from OpenNetLab.node.server import TCPServerNode
 class MyServerNode(TCPServerNode):
     async def recv_callback(self, data):
         print(data)
+        await self.send(data)
 
 # test locally
 if __name__ == '__main__':
