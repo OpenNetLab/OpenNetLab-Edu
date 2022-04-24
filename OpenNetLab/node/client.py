@@ -38,8 +38,23 @@ class TCPClientNode:
         else:
             self.has_connect = True
 
-    @override
     async def run(self):
+        await self.setup()
+        await self.connect()
+        await self.process()
+        await self.teardown()
+        pass
+
+    @override
+    async def setup(self):
+        pass
+
+    @override
+    async def process(self):
+        pass
+
+    @override
+    async def teardown(self):
         pass
 
     async def send(self, data):

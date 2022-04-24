@@ -34,7 +34,16 @@ class TCPServerNode:
         self.client_port = client_port
         self.sock.listen(1)
 
+    @override
+    async def setup(self):
+        pass
+
+    @override
+    async def recv_callback(self, data):
+        pass
+
     async def run(self):
+        await self.setup()
         await self._receive_client_connection()
         ending = False
         buffer = b''
@@ -63,11 +72,6 @@ class TCPServerNode:
                         eot_pos = buffer.find(self.EOT_CHAR)
                     else:
                         break
-            await asyncio.sleep(0.1)
-
-    @override
-    async def recv_callback(self, data):
-        pass
 
     async def send(self, data):
         if self.conn is not None:
