@@ -1,12 +1,16 @@
 import asyncio
 import hashlib
+import logging
 import random
 import socket
+import sys
 
 from OpenNetLab.protocol.packet import *
 
+
 def override(f):
     return f
+
 
 class TCPClientNode:
     def __init__(self, host, port, server_host, server_port) -> None:
@@ -20,7 +24,6 @@ class TCPClientNode:
         self.id = self._generate_id()
         self.EOT_CHAR = 0x04.to_bytes(1, 'big')
         self.loop = asyncio.get_event_loop()
-        self.has_connect = False
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.setblocking(False)
@@ -31,12 +34,10 @@ class TCPClientNode:
         try:
             await self.loop.sock_connect(self.sock, (self.server_host, self.server_port))
             self._debug_print('connect to peer node %s:%d' %
-                             (self.server_host, self.server_port))
+                              (self.server_host, self.server_port))
         except socket.error as e:
-            self._debug_print('fail to conenct to %s on port %s: %s' % (
-                self.server_host, self.server_port, str(e)))
-        else:
-            self.has_connect = True
+            logging.error('ERROR: fail to conenct %s:%s, %s' % (self.server_host, self.server_port, str(e)))
+            sys.exit(1)
 
     async def run(self):
         await self.setup()

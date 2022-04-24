@@ -2,6 +2,8 @@ import asyncio
 import hashlib
 import random
 import socket
+import logging
+import sys
 
 from OpenNetLab.protocol.packet import *
 
@@ -39,6 +41,10 @@ class TCPServerNode:
         pass
 
     @override
+    async def teardown(self):
+        pass
+
+    @override
     async def recv_callback(self, data):
         pass
 
@@ -52,10 +58,12 @@ class TCPServerNode:
         while not ending:
             try:
                 chunk = await self.loop.sock_recv(self.conn, self.chunk_size)
-            except socket.timeout:
-                self._debug_print('node_connection: timeout')
+            except socket.timeout as e:
+                logging.error('TIMEOUT before receiving any data: %s' % str(e))
+                sys.exit(1)
             except Exception as e:
-                self._debug_print('unexpected error: ' + str(e))
+                logging.error('ERROR: ' + str(e))
+                sys.exit(1)
 
             if chunk != b'':
                 buffer += chunk
@@ -72,6 +80,7 @@ class TCPServerNode:
                         eot_pos = buffer.find(self.EOT_CHAR)
                     else:
                         break
+        await self.teardown()
 
     async def send(self, data):
         if self.conn is not None:
@@ -96,4 +105,3 @@ class TCPServerNode:
     def _debug_print(self, msg):
         if self.debug:
             print(msg)
-
