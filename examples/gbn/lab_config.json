@@ -1,0 +1,6 @@
+{
+  "seq_no_width": 2,
+  "loss_rate": 0.2,
+  "message": "this_is_some_text",
+  "timeout": 3000
+}
