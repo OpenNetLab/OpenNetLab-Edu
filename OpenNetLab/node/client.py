@@ -48,11 +48,12 @@ class TCPClientNode:
     async def recv_next_packet(self):
         chunk = b''
         try:
-            chunk = await self.loop.sock_recv(self.sock, self.chunk_size)
-        except socket.timeout:
-            self._debug_print('node_connection: timeout')
+            # chunk = await self.loop.sock_recv(self.sock, self.chunk_size)
+            chunk = self.sock.recv(self.chunk_size)
+        except BlockingIOError as _:
+            pass
         except Exception as e:
-            self._debug_print('unexpected error: ' + str(e))
+            self._debug_print('Error: ' + str(e))
 
         if chunk != b'':
             self.buffer += chunk

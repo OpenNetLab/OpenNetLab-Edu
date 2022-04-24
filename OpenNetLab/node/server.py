@@ -24,7 +24,7 @@ class TCPServerNode:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.setblocking(False)
-        self.sock.settimeout(10.0)
+        self.sock.settimeout(60.0)
         # bind socket to listen
         self.sock.bind((self.host, self.port))
         # if socket type is TCP, wait for peer node's connection
