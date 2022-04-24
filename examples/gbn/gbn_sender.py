@@ -1,7 +1,6 @@
 import asyncio
 import json
 from collections import deque
-from typing import Deque
 import logging
 import coloredlogs
 
@@ -15,25 +14,19 @@ coloredlogs.install(
 
 
 class GBNSender(TCPClientNode):
-    seq_no_width: int
-    window_size: int
-    next_msg_idx: int
-    loss_rate: float
-    message: str
-    outbound: Deque
-
     async def setup(self):
         with open('./lab_config.json') as fp:
             cfg = json.load(fp)
-            self.next_msg_idx = 0
-            self.seq_no_width = int(cfg['seq_no_width'])
+            self.absno = 0
+            self.seqno_width = int(cfg['seqno_width'])
             self.loss_rate = float(cfg['loss_rate'])
             self.message = cfg['message']
             self.timeout = float(cfg['timeout'])
-            self.window_size = (2**self.seq_no_width) - 1
+            self.seqno_range = 2**self.seqno_width
+            self.window_size = self.seqno_range - 1
             self.outbound = deque([], self.window_size)
             self.next_seqno = 0
-            # self.timer = Timer(self.timeout, self.timeout_handler)
+            self.timer = Timer(self.timeout, self.timeout_handler)
 
     async def process(self):
         await self.send_available()
@@ -51,8 +44,8 @@ class GBNSender(TCPClientNode):
                         tmp.append(str(self.outbound.popleft()['seqno']))
                 logger.debug('[ACK]: ackno %d received, Packets %s are acked' % (ackno, ','.join(tmp)))
                 await self.send_available()
-                # self.timer.reset()
-            if len(self.outbound) == 0 and self.next_msg_idx == len(self.message):
+                self.timer.reset()
+            if len(self.outbound) == 0 and self.absno == len(self.message):
                 break
             await asyncio.sleep(0.1)
 
@@ -60,26 +53,25 @@ class GBNSender(TCPClientNode):
         await self.finish()
 
     def is_valid_ackno(self, ackno):
-        if 0 <= ackno < self.window_size and len(self.outbound) > 0 and self.outbound[0]['seqno'] != ackno:
+        if 0 <= ackno < self.seqno_range and len(self.outbound) > 0 and self.outbound[0]['seqno'] != ackno:
             return True
         return False
 
     async def send_available(self):
-        while len(self.outbound) < self.window_size and self.next_msg_idx < len(self.message):
-            pkt = new_packet(self.next_seqno, 0,
-                             self.message[self.next_msg_idx])
+        while len(self.outbound) < self.window_size and self.absno < len(self.message):
+            pkt = new_packet(self.absno, self.next_seqno, 0, self.message[self.absno])
             await self.send(pkt)
             logger.info('[SEND]: Sending seqno %d on message %s' % (pkt['seqno'], pkt['message']))
-            self.next_seqno = (self.next_seqno + 1) % self.window_size
-            self.next_msg_idx += 1
+            self.next_seqno = (self.next_seqno + 1) % self.seqno_range
+            self.absno += 1
             self.outbound.append(pkt)
-        # self.timer.reset()
+        self.timer.reset()
 
     async def timeout_handler(self):
         for pkt in self.outbound:
-            logger.error('[TIMEOUT]: Reseding %s' % pkt)
+            logger.error('[TIMEOUT]: Reseding seqno %d on message %s' % (pkt['seqno'], pkt['message']))
             await self.send(pkt)
-        # self.timer.reset()
+        self.timer.reset()
 
 
 async def main():

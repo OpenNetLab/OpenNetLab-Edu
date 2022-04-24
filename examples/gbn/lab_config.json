@@ -1,6 +1,6 @@
 {
-  "seq_no_width": 2,
+  "seqno_width": 4,
   "loss_rate": 0.2,
-  "message": "this_is_some_text",
-  "timeout": 3000
+  "message": "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.",
+  "timeout": 0.5
 }
