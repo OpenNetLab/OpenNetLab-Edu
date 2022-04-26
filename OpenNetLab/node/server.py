@@ -34,6 +34,15 @@ class TCPServerNode:
     async def recv_callback(self, data):
         pass
 
+    @override
+    async def evaulate_testcase(self):
+        '''
+        function to call when one testcase is finished, the following tasks should be incorporated in this function:
+        1. Use evaluator to evaluate the result
+        2. Reset the internal data structure
+        '''
+        pass
+
     async def run(self):
         await self.setup()
         await self._receive_client_connection()
@@ -65,13 +74,17 @@ class TCPServerNode:
                     elif packet.packet_type == PacketType.EXPIREMENT_DATA:
                         await self.recv_callback(packet.payload)
                         eot_pos = buffer.find(self.EOT_CHAR)
+                    elif packet.packet_type == PacketType.END_TESTCASE:
+                        await self.evaulate_testcase()
+                        await self.send('', PacketType.START_TESTCASE)
+                        eot_pos = buffer.find(self.EOT_CHAR)
                     else:
                         break
         await self.teardown()
 
-    async def send(self, data):
+    async def send(self, data, packet_type=PacketType.EXPIREMENT_DATA):
         if self.conn is not None:
-            await self.loop.sock_sendall(self.conn, ONLPacket(PacketType.EXPIREMENT_DATA, data).to_bytes() + self.EOT_CHAR)
+            await self.loop.sock_sendall(self.conn, ONLPacket(packet_type, data).to_bytes() + self.EOT_CHAR)
 
     async def _receive_client_connection(self):
         while True:

@@ -40,7 +40,18 @@ class TCPClientNode:
     async def run(self):
         await self.setup()
         await self.connect()
-        await self.process()
+        finished = False
+        while not finished:
+            finished = await self.testcase_handler()
+            await self.end_testcase()
+            packet = None
+            while True:
+                packet = await self.recv_next_packet()
+                if packet:
+                    break
+                await asyncio.sleep(0.1)
+            assert packet.packet_type == PacketType.START_TESTCASE
+        await self.finish()
         await self.teardown()
 
     @override
@@ -48,7 +59,7 @@ class TCPClientNode:
         pass
 
     @override
-    async def process(self):
+    async def testcase_handler(self):
         pass
 
     @override
@@ -57,6 +68,9 @@ class TCPClientNode:
 
     async def send(self, data):
         await self.loop.sock_sendall(self.sock, ONLPacket(PacketType.EXPIREMENT_DATA, data).to_bytes() + self.EOT_CHAR)
+
+    async def end_testcase(self):
+        await self.loop.sock_sendall(self.sock, ONLPacket(PacketType.END_TESTCASE, '').to_bytes() + self.EOT_CHAR)
 
     async def recv_next_packet(self):
         chunk = b''
@@ -74,7 +88,7 @@ class TCPClientNode:
         if eot_pos != -1:
             packet_bytes = self.buffer[:eot_pos]
             self.buffer = self.buffer[eot_pos+1:]
-            return ONLPacket.from_bytes(packet_bytes).payload
+            return ONLPacket.from_bytes(packet_bytes)
         else:
             return None
 

@@ -17,10 +17,14 @@ class GBNReceiver(TCPServerNode):
             self.next_msg_idx = 0
             self.seq_no_width = int(cfg['seqno_width'])
             self.loss_rate = float(cfg['loss_rate'])
+            self.testcases = cfg['testcases']
+            self.test_idx = 0
             self.seqno_range = 2**self.seq_no_width
             self.window_size = self.seqno_range - 1
             self.next_seqno = 0
             self.message = ''
+            self.failed_test = []
+            self.success_test = []
 
     async def recv_callback(self, data):
         if data['absno'] < len(self.message):
@@ -41,8 +45,25 @@ class GBNReceiver(TCPServerNode):
             await self.send(pkt)
             logger.info('[ACK]: Sending ackno %d on message %s' % (self.next_seqno, data['message']))
 
+
+    async def evaulate_testcase(self):
+        assert self.test_idx < len(self.testcases)
+        expected_msg = self.testcases[self.test_idx]
+        print(self.message)
+        if expected_msg == self.message:
+            self.success_test.append(self.test_idx)
+            print('TESTCASE %d PASSED' % self.test_idx)
+        else:
+            self.failed_test.append(self.test_idx)
+            print('TESTCASE %d FAILED' % self.test_idx)
+        self.test_idx += 1
+        self.message = ''
+        self.next_seqno = 0
+
     async def teardown(self):
-        logger.info('[MESSAGE]: %s' % self.message)
+        logger.info('[TEST CASES]: %d/%d PASSED' % (len(self.success_test), len(self.testcases)))
+        logger.info('PASSED TESTS: %s' % self.success_test)
+        logger.info('FAILED TESTS: %s' % self.failed_test)
 
     def is_loss(self):
         return random.random() < self.loss_rate
