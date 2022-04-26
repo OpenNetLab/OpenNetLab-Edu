@@ -16,24 +16,11 @@ class TCPServerNode:
     def __init__(self):
         self.debug = True
         self.host, self.port, self.client_host, self.client_port = _parse_args()
-        self.id = self._generate_id()
-        # receiving chunk sizee
         self.chunk_size = 4096
-        # end of each transmission
-        self.EOT_CHAR = 0x04.to_bytes(1, 'big')
-
         self.loop = asyncio.get_event_loop()
-
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.setblocking(False)
-        self.sock.settimeout(60.0)
-        # bind socket to listen
-        self.sock.bind((self.host, self.port))
-        # if socket type is TCP, wait for peer node's connection
-        self._debug_print('listen for connections')
-
-        self.sock.listen(1)
+        self.sock = self._create_socket()
+        self.EOT_CHAR = 0x04.to_bytes(1, 'big')
+        self.id = self._generate_id()
 
     @override
     async def setup(self):
@@ -95,6 +82,15 @@ class TCPServerNode:
                 break
             else:
                 conn.close()
+
+    def _create_socket(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.setblocking(False)
+        sock.settimeout(60.0)
+        sock.bind((self.host, self.port))
+        sock.listen(1)
+        return sock
 
     def _generate_id(self):
         uid = hashlib.sha256()

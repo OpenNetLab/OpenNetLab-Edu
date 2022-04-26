@@ -18,14 +18,10 @@ class TCPClientNode:
         self.host, self.port, self.server_host, self.server_port = _parse_args()
         self.buffer = b''
         self.chunk_size = 4096
+        self.loop = asyncio.get_event_loop()
+        self.sock = self._create_socket()
         self.id = self._generate_id()
         self.EOT_CHAR = 0x04.to_bytes(1, 'big')
-        self.loop = asyncio.get_event_loop()
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.setblocking(False)
-        # bind to allocated address
-        self.sock.bind((self.host, self.port))
 
     async def connect(self):
         MAX_RETRY = 10
@@ -87,6 +83,13 @@ class TCPClientNode:
 
     def __str__(self):
         return 'Node %s (%s : %d)' % (self.id, self.host, self.port)
+
+    def _create_socket(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.setblocking(False)
+        sock.bind((self.host, self.port))
+        return sock
 
     def _generate_id(self):
         uid = hashlib.sha256()
