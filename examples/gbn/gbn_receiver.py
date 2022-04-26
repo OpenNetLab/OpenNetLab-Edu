@@ -36,7 +36,7 @@ class GBNReceiver(TCPServerNode):
         self.message += data['message']
         self.next_seqno = (self.next_seqno + 1) % self.seqno_range
         pkt = new_packet(0, 0, self.next_seqno, '')
-        print(self.message)
+        # print(self.message)
         if not self.is_loss():
             await self.send(pkt)
             logger.info('[ACK]: Sending ackno %d on message %s' % (self.next_seqno, data['message']))

@@ -1,6 +1,5 @@
 import asyncio
 import hashlib
-import logging
 import random
 import socket
 import sys
@@ -31,12 +30,17 @@ class TCPClientNode:
         self.sock.bind((self.host, self.port))
 
     async def connect(self):
-        try:
-            await self.loop.sock_connect(self.sock, (self.server_host, self.server_port))
-            self._debug_print('connect to peer node %s:%d' %
-                              (self.server_host, self.server_port))
-        except socket.error as e:
-            logging.error('ERROR: fail to conenct %s:%s, %s' % (self.server_host, self.server_port, str(e)))
+        MAX_RETRY = 10
+        ret = False
+        for i in range(MAX_RETRY):
+            try:
+                await self.loop.sock_connect(self.sock, (self.server_host, self.server_port))
+                ret = True
+                break
+            except Exception as exc:
+                self._debug_print("Error: time %d failed to connect to %s:%d" % (i, self.server_host, self.server_port))
+                await asyncio.sleep(2)
+        if not ret:
             sys.exit(1)
 
     async def run(self):

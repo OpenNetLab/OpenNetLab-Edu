@@ -2,7 +2,6 @@ import asyncio
 import hashlib
 import random
 import socket
-import logging
 import sys
 
 from OpenNetLab.protocol.packet import *
@@ -59,10 +58,10 @@ class TCPServerNode:
             try:
                 chunk = await self.loop.sock_recv(self.conn, self.chunk_size)
             except socket.timeout as e:
-                logging.error('TIMEOUT before receiving any data: %s' % str(e))
+                self._debug_print('TIMEOUT before receiving any data: %s' % str(e))
                 sys.exit(1)
             except Exception as e:
-                logging.error('ERROR: ' + str(e))
+                self._debug_print('ERROR: ' + str(e))
                 sys.exit(1)
 
             if chunk != b'':
