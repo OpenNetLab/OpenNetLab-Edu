@@ -59,10 +59,10 @@ class TCPServerNode:
                     packet_bytes = buffer[:eot_pos]
                     buffer = buffer[eot_pos+1:]
                     packet = ONLPacket.from_bytes(packet_bytes)
-                    if packet.packet_type == ONLPacket.END_NOTIFY:
+                    if packet.packet_type == PacketType.END_NOTIFY:
                         ending = True
                         break
-                    elif packet.packet_type == ONLPacket.EXPIREMENT_DATA:
+                    elif packet.packet_type == PacketType.EXPIREMENT_DATA:
                         await self.recv_callback(packet.payload)
                         eot_pos = buffer.find(self.EOT_CHAR)
                     else:
@@ -71,7 +71,7 @@ class TCPServerNode:
 
     async def send(self, data):
         if self.conn is not None:
-            await self.loop.sock_sendall(self.conn, ONLPacket(ONLPacket.EXPIREMENT_DATA, data).to_bytes() + self.EOT_CHAR)
+            await self.loop.sock_sendall(self.conn, ONLPacket(PacketType.EXPIREMENT_DATA, data).to_bytes() + self.EOT_CHAR)
 
     async def _receive_client_connection(self):
         while True:

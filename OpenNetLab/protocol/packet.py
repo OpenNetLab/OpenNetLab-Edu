@@ -1,8 +1,16 @@
 import json
+from enum import IntEnum, auto
+
+
+class PacketType(IntEnum):
+    START_NOTIFY = auto()
+    END_NOTIFY = auto()
+    EXPIREMENT_DATA = auto()
+    END_TESTCASE = auto()
+    START_TESTCASE = auto()
 
 
 class ONLPacket:
-    START_NOTIFY, END_NOTIFY, STATUS_QUERY, STATUS_REPLY, EXPIREMENT_DATA, RESULT_DATA = range(6)
     def __init__(self, packet_type, payload) -> None:
         self.packet_type = packet_type
         self.payload = payload

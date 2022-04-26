@@ -31,7 +31,7 @@ class TCPClientNode:
                 await self.loop.sock_connect(self.sock, (self.server_host, self.server_port))
                 ret = True
                 break
-            except Exception as exc:
+            except Exception as _:
                 self._debug_print("Error: time %d failed to connect to %s:%d" % (i, self.server_host, self.server_port))
                 await asyncio.sleep(2)
         if not ret:
@@ -56,7 +56,7 @@ class TCPClientNode:
         pass
 
     async def send(self, data):
-        await self.loop.sock_sendall(self.sock, ONLPacket(ONLPacket.EXPIREMENT_DATA, data).to_bytes() + self.EOT_CHAR)
+        await self.loop.sock_sendall(self.sock, ONLPacket(PacketType.EXPIREMENT_DATA, data).to_bytes() + self.EOT_CHAR)
 
     async def recv_next_packet(self):
         chunk = b''
@@ -79,7 +79,7 @@ class TCPClientNode:
             return None
 
     async def finish(self):
-        await self.loop.sock_sendall(self.sock, ONLPacket(ONLPacket.END_NOTIFY, '').to_bytes() + self.EOT_CHAR)
+        await self.loop.sock_sendall(self.sock, ONLPacket(PacketType.END_NOTIFY, '').to_bytes() + self.EOT_CHAR)
 
     def __str__(self):
         return 'Node %s (%s : %d)' % (self.id, self.host, self.port)
