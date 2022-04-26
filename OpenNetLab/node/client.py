@@ -4,7 +4,8 @@ import random
 import socket
 import sys
 
-from OpenNetLab.protocol.packet import *
+from ..protocol.packet import *
+from .common import _parse_args
 
 
 def override(f):
@@ -12,12 +13,9 @@ def override(f):
 
 
 class TCPClientNode:
-    def __init__(self, host, port, server_host, server_port) -> None:
+    def __init__(self):
         self.debug = True
-        self.host = host
-        self.port = port
-        self.server_host = server_host
-        self.server_port = server_port
+        self.host, self.port, self.server_host, self.server_port = _parse_args()
         self.buffer = b''
         self.chunk_size = 4096
         self.id = self._generate_id()
@@ -48,7 +46,6 @@ class TCPClientNode:
         await self.connect()
         await self.process()
         await self.teardown()
-        pass
 
     @override
     async def setup(self):

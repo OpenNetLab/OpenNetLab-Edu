@@ -4,16 +4,18 @@ import random
 import socket
 import sys
 
-from OpenNetLab.protocol.packet import *
+from ..protocol.packet import *
+from .common import _parse_args
+
 
 def override(f):
     return f
 
+
 class TCPServerNode:
-    def __init__(self, host, port, client_host, client_port) -> None:
+    def __init__(self):
         self.debug = True
-        self.host = host
-        self.port = port
+        self.host, self.port, self.client_host, self.client_port = _parse_args()
         self.id = self._generate_id()
         # receiving chunk sizee
         self.chunk_size = 4096
@@ -31,8 +33,6 @@ class TCPServerNode:
         # if socket type is TCP, wait for peer node's connection
         self._debug_print('listen for connections')
 
-        self.client_host = client_host
-        self.client_port = client_port
         self.sock.listen(1)
 
     @override
@@ -58,7 +58,8 @@ class TCPServerNode:
             try:
                 chunk = await self.loop.sock_recv(self.conn, self.chunk_size)
             except socket.timeout as e:
-                self._debug_print('TIMEOUT before receiving any data: %s' % str(e))
+                self._debug_print(
+                    'TIMEOUT before receiving any data: %s' % str(e))
                 sys.exit(1)
             except Exception as e:
                 self._debug_print('ERROR: ' + str(e))

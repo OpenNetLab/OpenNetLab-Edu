@@ -75,9 +75,14 @@ class GBNSender(TCPClientNode):
 
 
 async def main():
-    sender = GBNSender('localhost', 9002, 'localhost', 9001)
+    sender = GBNSender()
     await sender.run()
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
+    except KeyboardInterrupt as _:
+        print('keyboard interrupt accept, exit')
+    except Exception as _:
+        raise

@@ -49,9 +49,14 @@ class GBNReceiver(TCPServerNode):
 
 
 async def main():
-    receiver = GBNReceiver('localhost', 9001, 'localhost', 9002)
+    receiver = GBNReceiver()
     await receiver.run()
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
+    except KeyboardInterrupt as _:
+        print('keyboard interrupt accept, exit')
+    except Exception as _:
+        raise
