@@ -3,11 +3,11 @@ from enum import IntEnum, auto
 
 
 class PacketType(IntEnum):
-    START_NOTIFY = auto()
-    END_NOTIFY = auto()
+    START_EXPERIMENT = auto()
+    END_EXPERIMENT = auto()
     EXPIREMENT_DATA = auto()
-    END_TESTCASE = auto()
     START_TESTCASE = auto()
+    END_TESTCASE = auto()
 
 
 class ONLPacket:

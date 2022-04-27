@@ -124,7 +124,7 @@ class TCPClientNode:
 
         Send a message to server to close the connection.
         """
-        await self.loop.sock_sendall(self.sock, ONLPacket(PacketType.END_NOTIFY, '').to_bytes() + self.EOT_CHAR)
+        await self.loop.sock_sendall(self.sock, ONLPacket(PacketType.END_EXPERIMENT, '').to_bytes() + self.EOT_CHAR)
 
     def __str__(self):
         return 'Node %s (%s : %d)' % (self.id, self.host, self.port)

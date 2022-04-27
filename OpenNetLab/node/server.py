@@ -109,7 +109,7 @@ class TCPServerNode:
                     packet_bytes = buffer[:eot_pos]
                     buffer = buffer[eot_pos+1:]
                     packet = ONLPacket.from_bytes(packet_bytes)
-                    if packet.packet_type == PacketType.END_NOTIFY:
+                    if packet.packet_type == PacketType.END_EXPERIMENT:
                         ending = True
                         break
                     elif packet.packet_type == PacketType.EXPIREMENT_DATA:
