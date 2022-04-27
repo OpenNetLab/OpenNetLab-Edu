@@ -5,11 +5,7 @@ import socket
 import sys
 
 from ..protocol.packet import *
-from .common import _parse_args
-
-
-def override(f):
-    return f
+from .common import _parse_args, override
 
 
 class TCPClientNode:
@@ -29,23 +25,24 @@ class TCPClientNode:
 
         This function should be overriden by derived class. The tasks which
         derived class add to this function might include:
-            1. parse the lab config file
-            2. create data structure required by expirement
-            3. read in all the test cases
+
+        1. parse the lab config file
+        2. create data structure required by expirement
+        3. read in all the test cases
         """
         pass
 
     @override
     async def testcase_handler(self):
-        """Return true if the justed finished test is the last one.
+        """Return true if the justed finished test is the last one
 
         This function should be overriden by derived class. Derived class
         should implement the client node logic of the expirement in this
         function. This function might include the following parts:
-            1. reset the data structure used by lab to prepare for this test case
-            2. parse the test case, send packets and waiting for server's reponse
-        and handle the packets received.
-            3. return when all the packets have been sent and received
+
+        1. reset the data structure used by lab to prepare for this test case
+        2. parse the test case, send packets and waiting for server's reponse and handle the packets received.
+        3. return when all the packets have been sent and received
 
         To get intuitive impression, please check the example expirements composed
         using OpenNetLab.
@@ -66,11 +63,12 @@ class TCPClientNode:
         """Run the client node
 
         This is the entry function for the client node, which includes the following procedures:
-            1. setup the expirement data
-            2. try connecting to server
-            3. call testcase_handler until all the test cases have been finished
-            4. finish the expirement
-            5. teardown the expirement data
+
+        1. setup the expirement data
+        2. try connecting to server
+        3. call testcase_handler until all the test cases have been finished
+        4. finish the expirement
+        5. teardown the expirement data
         """
         await self.setup()
         await self._connect()

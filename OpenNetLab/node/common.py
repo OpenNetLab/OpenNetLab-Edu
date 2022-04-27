@@ -24,3 +24,7 @@ def _parse_args():
     if not valid:
         sys.exit(1)
     return (host, int(port), remote_host, int(remote_port))
+
+
+def override(f):
+    return f

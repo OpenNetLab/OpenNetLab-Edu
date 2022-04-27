@@ -5,11 +5,7 @@ import socket
 import sys
 
 from ..protocol.packet import *
-from .common import _parse_args
-
-
-def override(f):
-    return f
+from .common import _parse_args, override
 
 
 class TCPServerNode:
@@ -28,9 +24,10 @@ class TCPServerNode:
 
         This function should be overriden by derived class. The tasks which
         derived class add to this function might include:
-            1. parse the lab config file
-            2. create data structure required by expirement
-            3. read in all the test cases
+
+        1. parse the lab config file
+        2. create data structure required by expirement
+        3. read in all the test cases
         """
         pass
 
@@ -64,8 +61,9 @@ class TCPServerNode:
         This function is called when the END_TESTCASE packet has been received.
 
         The following tasks should be incorporated in this function:
-            1. Evaluate the result
-            2. Reset the internal data structure
+
+        1. Evaluate the result
+        2. Reset the internal data structure
         """
         pass
 
@@ -74,16 +72,17 @@ class TCPServerNode:
 
         This is the entry function for the server node, which includes the
         following procedures:
-            1. setup the expirement's data
-            2. wait for client's connection
-            3. enter the loop of receiving packet from client
-                a. if the packet is EXPIREMENT_DATA packet,
-                   then call recv_callback function
-                b. if the packet is END_TESTCASE packet, then
-                   call evaulate_testcase function
-                c. if the packet is END_NOTIFY packet, then
-                   break the loop.
-            4. tear down the expirement data.
+
+        1. setup the expirement's data
+        2. wait for client's connection
+        3. enter the loop of receiving packet from client
+            * if the packet is EXPIREMENT_DATA packet,
+               then call recv_callback function
+            * if the packet is END_TESTCASE packet, then
+               call evaulate_testcase function
+            * if the packet is END_NOTIFY packet, then
+               break the loop.
+        4. tear down the expirement data.
         """
         await self.setup()
         await self._receive_client_connection()
@@ -120,7 +119,8 @@ class TCPServerNode:
                         await self.send('', PacketType.START_TESTCASE)
                         eot_pos = buffer.find(self.EOT_CHAR)
                     else:
-                        print('Erorr: unrecgonized packet type: %d' % packet.packet_type)
+                        print('Erorr: unrecgonized packet type: %d' %
+                              packet.packet_type)
                         sys.exit(1)
         await self.teardown()
 
