@@ -55,7 +55,7 @@ class GBNSender(TCPClientNode):
                 self.timer.reset()
             if len(self.outbound) == 0 and self.absno == len(message):
                 break
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.02)
 
         logger.debug('[TESTCASE %d FINISHED]' % self.test_idx)
         ret = False

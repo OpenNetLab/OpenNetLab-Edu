@@ -3,6 +3,7 @@ import json
 import random
 import logging
 import coloredlogs
+import time
 
 from OpenNetLab.node.server import TCPServerNode
 from gbn_packet import new_packet
@@ -25,19 +26,25 @@ class GBNReceiver(TCPServerNode):
             self.message = ''
             self.failed_test = []
             self.success_test = []
+            self.recorder.set_headers(('time', 'absno', 'seqno', 'message', 'status'))
 
     async def recv_callback(self, data):
         if data['absno'] < len(self.message):
             pkt = new_packet(0, 0, (data['absno'] + 1) % self.seqno_range, '')
             await self.send(pkt)
             logger.info('[ACK]: Sending ackno %d on received message %s' % (self.next_seqno, self.message[data['absno']]))
+            self.recorder.add_record(self.test_idx, (time.strftime('%H:%M:%S'), data['absno'], self.next_seqno, data['message'], 'DUP'))
+            return
         if data['seqno'] != self.next_seqno:
             logger.warning('[DISCARD]: Invalid seqno %d, expected %d' % (data['seqno'], self.next_seqno))
+            self.recorder.add_record(self.test_idx, (time.strftime('%H:%M:%S'), data['absno'], self.next_seqno, data['message'], 'DISCARD'))
             return
         if self.is_loss():
             logger.warning('[LOST]: seqno %d on message %s is lost' % (data['seqno'], data['message']))
+            self.recorder.add_record(self.test_idx, (time.strftime('%H:%M:%S'), data['absno'], self.next_seqno, data['message'], 'LOST'))
             return
         self.message += data['message']
+        self.recorder.add_record(self.test_idx, (time.strftime('%H:%M:%S'), data['absno'], self.next_seqno, data['message'], 'RCVD'))
         self.next_seqno = (self.next_seqno + 1) % self.seqno_range
         pkt = new_packet(0, 0, self.next_seqno, '')
         # print(self.message)

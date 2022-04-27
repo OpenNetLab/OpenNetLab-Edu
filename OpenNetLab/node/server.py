@@ -3,10 +3,11 @@ import hashlib
 import random
 import socket
 import sys
+import os
 
 from ..protocol.packet import *
 from .common import _parse_args, override
-
+from ..utils.recorder import Recorder
 
 class TCPServerNode:
     def __init__(self):
@@ -17,6 +18,7 @@ class TCPServerNode:
         self.sock = self._create_socket()
         self.EOT_CHAR = 0x04.to_bytes(1, 'big')
         self.id = self._generate_id()
+        self.recorder = Recorder(os.getcwd() + '/results')
 
     @override
     async def setup(self):
@@ -122,6 +124,7 @@ class TCPServerNode:
                         print('Erorr: unrecgonized packet type: %d' %
                               packet.packet_type)
                         sys.exit(1)
+        self.recorder.close()
         await self.teardown()
 
     async def send(self, data, packet_type=PacketType.EXPIREMENT_DATA):
