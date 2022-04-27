@@ -56,7 +56,7 @@ class TCPClientNode:
     async def teardown(self):
         """Tear down the client node
 
-        This function should be overriden by derived class. teardown() is
+        This function should be overriden by derived class. teardown is
         executed when all the test cases have finished. Derived class can
         teardown its data structure in this function.
         """
@@ -66,11 +66,11 @@ class TCPClientNode:
         """Run the client node
 
         This is the entry function for the client node, which includes the following procedures:
-            1. call setup funcion to setup the data of lab
+            1. setup the expirement data
             2. try connecting to server
             3. call testcase_handler until all the test cases have been finished
-            4. finish the lab
-            5. teardown the data of lab
+            4. finish the expirement
+            5. teardown the expirement data
         """
         await self.setup()
         await self._connect()
@@ -89,8 +89,8 @@ class TCPClientNode:
         await self.teardown()
 
     async def send(self, data):
-        """Send expirement data, the type of data can be any python basic data
-        types
+        """Send expirement data to server, the type of data can be any python
+        basic data types
         """
         await self.loop.sock_sendall(self.sock, ONLPacket(PacketType.EXPIREMENT_DATA, data).to_bytes() + self.EOT_CHAR)
 

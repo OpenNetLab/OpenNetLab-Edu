@@ -24,26 +24,67 @@ class TCPServerNode:
 
     @override
     async def setup(self):
+        """Setup the server node
+
+        This function should be overriden by derived class. The tasks which
+        derived class add to this function might include:
+            1. parse the lab config file
+            2. create data structure required by expirement
+            3. read in all the test cases
+        """
         pass
 
     @override
     async def teardown(self):
+        """Tear down the client node
+
+        This function should be overriden by derived class. teardown is
+        executed when all the test cases have finished. Derived class can
+        teardown its data structure in this function.
+        """
         pass
 
     @override
     async def recv_callback(self, data):
+        """Handling the received data.
+
+        This function should be overriden by derived class. It is a callback
+        function which is called when receiving packet containing the
+        expirement data.
+
+        The main logic of the designed expirement should be implemented in this
+        function.
+        """
         pass
 
     @override
     async def evaulate_testcase(self):
-        '''
-        function to call when one testcase is finished, the following tasks should be incorporated in this function:
-        1. Use evaluator to evaluate the result
-        2. Reset the internal data structure
-        '''
+        """Evalate the test case.
+
+        This function is called when the END_TESTCASE packet has been received.
+
+        The following tasks should be incorporated in this function:
+            1. Evaluate the result
+            2. Reset the internal data structure
+        """
         pass
 
     async def run(self):
+        """Run the server node
+
+        This is the entry function for the server node, which includes the
+        following procedures:
+            1. setup the expirement's data
+            2. wait for client's connection
+            3. enter the loop of receiving packet from client
+                a. if the packet is EXPIREMENT_DATA packet,
+                   then call recv_callback function
+                b. if the packet is END_TESTCASE packet, then
+                   call evaulate_testcase function
+                c. if the packet is END_NOTIFY packet, then
+                   break the loop.
+            4. tear down the expirement data.
+        """
         await self.setup()
         await self._receive_client_connection()
         ending = False
@@ -79,33 +120,53 @@ class TCPServerNode:
                         await self.send('', PacketType.START_TESTCASE)
                         eot_pos = buffer.find(self.EOT_CHAR)
                     else:
-                        break
+                        print('Erorr: unrecgonized packet type: %d' % packet.packet_type)
+                        sys.exit(1)
         await self.teardown()
 
     async def send(self, data, packet_type=PacketType.EXPIREMENT_DATA):
+        """Send expirement data to client, the type of data can be any python
+        basic data types
+        """
         if self.conn is not None:
             await self.loop.sock_sendall(self.conn, ONLPacket(packet_type, data).to_bytes() + self.EOT_CHAR)
 
     async def _receive_client_connection(self):
-        while True:
-            conn, addr = await self.loop.sock_accept(self.sock)
-            if addr[0] == self.client_host or addr[1] == self.client_port:
-                self._debug_print('recieve connection from %s:%d' % addr)
-                self.conn = conn
-                break
-            else:
-                conn.close()
+        """Receive the connection from client.
+
+        After receiving the connection. Check if the client's address is valid.
+        If not valid, then close the connection and wait for the expected
+        client.
+
+        If there is no connection in more than 15s, then exit
+        """
+        try:
+            while True:
+                conn, addr = await self.loop.sock_accept(self.sock)
+                if addr[0] == self.client_host or addr[1] == self.client_port:
+                    self._debug_print('recieve connection from %s:%d' % addr)
+                    self.conn = conn
+                    break
+                else:
+                    conn.close()
+        except socket.timeout as _:
+            print('socket times out before receiving any viable connection')
+            sys.exit(1)
 
     def _create_socket(self):
+        """Create socket and set some socket options.
+        """
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setblocking(False)
-        sock.settimeout(60.0)
+        sock.settimeout(15.0)
         sock.bind((self.host, self.port))
         sock.listen(1)
         return sock
 
     def _generate_id(self):
+        """Generate the unique node ID.
+        """
         uid = hashlib.sha256()
         t = self.host + str(self.port) + str(random.randint(1, 99999999))
         uid.update(t.encode('ascii'))
