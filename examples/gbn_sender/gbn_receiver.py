@@ -1,15 +1,11 @@
 import asyncio
 import json
 import random
-import logging
-import coloredlogs
 import time
 
 from OpenNetLab.node.server import TCPServerNode
 from gbn_packet import new_packet
-
-logger = logging.getLogger(__name__)
-coloredlogs.install(level="DEBUG", fmt="%(asctime)s - %(message)s", datefmt="%H:%M:%S")
+from gbn_logger import logger
 
 class GBNReceiver(TCPServerNode):
     async def setup(self):

@@ -1,16 +1,11 @@
 import asyncio
 import json
 from collections import deque
-import logging
-import coloredlogs
 
 from OpenNetLab.node.client import TCPClientNode
 from OpenNetLab.utils.timer import Timer
 from gbn_packet import new_packet
-
-logger = logging.getLogger(__name__)
-coloredlogs.install(
-    level="DEBUG", fmt="%(asctime)s - %(message)s", datefmt="%H:%M:%S")
+from gbn_logger import logger
 
 
 class GBNSender(TCPClientNode):
