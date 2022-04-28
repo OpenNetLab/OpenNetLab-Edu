@@ -4,6 +4,10 @@ This experiment aims to help students to understand basic concepts of ARQ protco
 
 For the experiment details, check out the lab munaul (added later)
 
+## student task
+
+students are supposed to implement the `gbn_sender_skeleton.py` in this directory
+
 ## running completed demo
 
 ```
