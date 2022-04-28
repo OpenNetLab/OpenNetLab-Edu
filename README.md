@@ -1,6 +1,6 @@
 <h1 align="center">OpenNetLab Demo</h1>
 
-## installaction
+## installation
 
 ```
 python3 -m pip install . --user
@@ -11,7 +11,7 @@ python3 -m pip install . --user
 check out example experiments implemented using OpenNetLab
 
 * [Simple Example](./examples/simple/README.md)
-* [GBN ARQ Protocal Experiment](./examples/gbn/README.md)
+* [GBN ARQ Protocal Experiment](./examples/gbn_sender/README.md)
 
 ## docs
 

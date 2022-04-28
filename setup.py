@@ -5,15 +5,15 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="OpenNetLab",
-    version="0.0.1",
+    version="0.2",
     author="zdszero",
     author_email="dingzifeng8@gmail.com",
-    description="OpenNetLab Demo By USTC",
+    description="OpenNetLab for edu 2022 By USTC",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/pypa/sampleproject",
+    url="https://github.com/zdszero/OpenNetLab",
     project_urls={
-        "Bug Tracker": "https://github.com/pypa/sampleproject/issues",
+        "Bug Tracker": "https://github.com/zdszero/OpenNetLab/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",
