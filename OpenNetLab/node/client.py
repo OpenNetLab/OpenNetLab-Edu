@@ -3,12 +3,13 @@ import hashlib
 import random
 import socket
 import sys
+import abc
 
 from ..protocol.packet import *
-from .common import _parse_args, override
+from .common import _parse_args
 
 
-class TCPClientNode:
+class TCPClientNode(abc.ABC):
     def __init__(self):
         self.debug = True
         self.host, self.port, self.server_host, self.server_port = _parse_args()
@@ -19,7 +20,7 @@ class TCPClientNode:
         self.id = self._generate_id()
         self.EOT_CHAR = 0x04.to_bytes(1, 'big')
 
-    @override
+    @abc.abstractmethod
     async def setup(self):
         """Setup the client node
 
@@ -30,9 +31,8 @@ class TCPClientNode:
         2. create data structure required by expirement
         3. read in all the test cases
         """
-        pass
 
-    @override
+    @abc.abstractmethod
     async def testcase_handler(self):
         """Return true if the justed finished test is the last one
 
@@ -47,9 +47,8 @@ class TCPClientNode:
         To get intuitive impression, please check the example expirements composed
         using OpenNetLab.
         """
-        pass
 
-    @override
+    @abc.abstractmethod
     async def teardown(self):
         """Tear down the client node
 
@@ -57,7 +56,6 @@ class TCPClientNode:
         executed when all the test cases have finished. Derived class can
         teardown its data structure in this function.
         """
-        pass
 
     async def run(self):
         """Run the client node

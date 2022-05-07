@@ -4,12 +4,14 @@ import random
 import socket
 import sys
 import os
+import abc
 
 from ..protocol.packet import *
-from .common import _parse_args, override
+from .common import _parse_args
 from ..utils.recorder import Recorder
 
-class TCPServerNode:
+
+class TCPServerNode(abc.ABC):
     def __init__(self):
         self.debug = True
         self.host, self.port, self.client_host, self.client_port = _parse_args()
@@ -20,7 +22,7 @@ class TCPServerNode:
         self.id = self._generate_id()
         self.recorder = Recorder(os.getcwd() + '/results')
 
-    @override
+    @abc.abstractmethod
     async def setup(self):
         """Setup the server node
 
@@ -31,9 +33,8 @@ class TCPServerNode:
         2. create data structure required by expirement
         3. read in all the test cases
         """
-        pass
 
-    @override
+    @abc.abstractmethod
     async def teardown(self):
         """Tear down the client node
 
@@ -41,9 +42,8 @@ class TCPServerNode:
         executed when all the test cases have finished. Derived class can
         teardown its data structure in this function.
         """
-        pass
 
-    @override
+    @abc.abstractmethod
     async def recv_callback(self, data):
         """Handling the received data.
 
@@ -54,9 +54,8 @@ class TCPServerNode:
         The main logic of the designed expirement should be implemented in this
         function.
         """
-        pass
 
-    @override
+    @abc.abstractmethod
     async def evaulate_testcase(self):
         """Evalate the test case.
 
@@ -67,7 +66,6 @@ class TCPServerNode:
         1. Evaluate the result
         2. Reset the internal data structure
         """
-        pass
 
     async def run(self):
         """Run the server node

@@ -71,6 +71,9 @@ class StudentGBNSender(GBNSender):
 
         logger.debug('[TESTCASE %d FINISHED]' % self.test_idx)
 
+    async def teardown(self):
+        pass
+
     def is_valid_ackno(self, ackno):
         if 0 <= ackno < self.seqno_range and len(self.outbound) > 0 and self.outbound[0]['seqno'] != ackno:
             return True
