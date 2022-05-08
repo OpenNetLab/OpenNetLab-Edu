@@ -2,9 +2,9 @@ import asyncio
 import hashlib
 import random
 import socket
-import sys
 import os
 import abc
+import logging
 
 from ..protocol.packet import *
 from .common import _parse_args
@@ -85,43 +85,42 @@ class TCPServerNode(abc.ABC):
         4. tear down the expirement data.
         """
         await self.setup()
-        await self._receive_client_connection()
-        ending = False
-        buffer = b''
-        chunk = b''
-        self._debug_print('waiting for message from client')
-        while not ending:
-            try:
-                chunk = await self.loop.sock_recv(self.conn, self.chunk_size)
-            except socket.timeout as e:
-                self._debug_print(
-                    'TIMEOUT before receiving any data: %s' % str(e))
-                sys.exit(1)
-            except Exception as e:
-                self._debug_print('ERROR: ' + str(e))
-                sys.exit(1)
+        connected = await self._receive_client_connection()
+        if connected:
+            ending = False
+            buffer = b''
+            chunk = b''
+            self._debug_print('waiting for message from client')
+            while not ending:
+                try:
+                    chunk = await self.loop.sock_recv(self.conn, self.chunk_size)
+                except socket.timeout as e:
+                    logging.error(f'TIMEOUT before receiving any data: %s' % str(e))
+                    break
+                except Exception as e:
+                    logging.error('ERROR: ' + str(e))
+                    break
 
-            if chunk != b'':
-                buffer += chunk
-                eot_pos = buffer.find(self.EOT_CHAR)
-                while eot_pos != -1:
-                    packet_bytes = buffer[:eot_pos]
-                    buffer = buffer[eot_pos+1:]
-                    packet = ONLPacket.from_bytes(packet_bytes)
-                    if packet.packet_type == PacketType.END_EXPERIMENT:
-                        ending = True
-                        break
-                    elif packet.packet_type == PacketType.EXPIREMENT_DATA:
-                        await self.recv_callback(packet.payload)
-                        eot_pos = buffer.find(self.EOT_CHAR)
-                    elif packet.packet_type == PacketType.END_TESTCASE:
-                        await self.evaulate_testcase()
-                        await self.send('', PacketType.START_TESTCASE)
-                        eot_pos = buffer.find(self.EOT_CHAR)
-                    else:
-                        print('Erorr: unrecgonized packet type: %d' %
-                              packet.packet_type)
-                        sys.exit(1)
+                if chunk != b'':
+                    buffer += chunk
+                    eot_pos = buffer.find(self.EOT_CHAR)
+                    while eot_pos != -1:
+                        packet_bytes = buffer[:eot_pos]
+                        buffer = buffer[eot_pos+1:]
+                        packet = ONLPacket.from_bytes(packet_bytes)
+                        if packet.packet_type == PacketType.END_EXPERIMENT:
+                            ending = True
+                            break
+                        elif packet.packet_type == PacketType.EXPIREMENT_DATA:
+                            await self.recv_callback(packet.payload)
+                            eot_pos = buffer.find(self.EOT_CHAR)
+                        elif packet.packet_type == PacketType.END_TESTCASE:
+                            await self.evaulate_testcase()
+                            await self.send('', PacketType.START_TESTCASE)
+                            eot_pos = buffer.find(self.EOT_CHAR)
+                        else:
+                            logging.error('Erorr: unrecgonized packet type: %d' % packet.packet_type)
+                            break
         self.recorder.close()
         await self.teardown()
 
@@ -151,8 +150,10 @@ class TCPServerNode(abc.ABC):
                 else:
                     conn.close()
         except socket.timeout as _:
-            print('socket times out before receiving any viable connection')
-            sys.exit(1)
+            logging.error('Error: socket times out before receiving any viable connection')
+            return False
+        else:
+            return True
 
     def _create_socket(self):
         """Create socket and set some socket options.

@@ -2,8 +2,8 @@ import asyncio
 import hashlib
 import random
 import socket
-import sys
 import abc
+import logging
 
 from ..protocol.packet import *
 from .common import _parse_args
@@ -69,19 +69,20 @@ class TCPClientNode(abc.ABC):
         5. teardown the expirement data
         """
         await self.setup()
-        await self._connect()
-        finished = False
-        while not finished:
-            finished = await self.testcase_handler()
-            await self._end_testcase()
-            packet = None
-            while True:
-                packet = await self.recv_next_packet()
-                if packet:
-                    break
-                await asyncio.sleep(0.1)
-            assert packet.packet_type == PacketType.START_TESTCASE
-        await self.finish()
+        connected = await self._connect()
+        if not connected:
+            finished = False
+            while not finished:
+                finished = await self.testcase_handler()
+                await self._end_testcase()
+                packet = None
+                while True:
+                    packet = await self.recv_next_packet()
+                    if packet:
+                        break
+                    await asyncio.sleep(0.1)
+                assert packet.packet_type == PacketType.START_TESTCASE
+            await self.finish()
         await self.teardown()
 
     async def send(self, data):
@@ -152,7 +153,8 @@ class TCPClientNode(abc.ABC):
                     i, self.server_host, self.server_port))
                 await asyncio.sleep(2)
         if not ret:
-            sys.exit(1)
+            logging.error('Error: fail to connect to server')
+        return ret
 
     async def _end_testcase(self):
         """Tell the server the current test case has been finished.
