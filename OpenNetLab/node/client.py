@@ -70,7 +70,7 @@ class TCPClientNode(abc.ABC):
         """
         await self.setup()
         connected = await self._connect()
-        if not connected:
+        if connected:
             finished = False
             while not finished:
                 finished = await self.testcase_handler()
