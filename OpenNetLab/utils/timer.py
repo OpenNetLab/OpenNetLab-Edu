@@ -10,7 +10,7 @@ class Timer:
         self.task = None
 
     async def _job(self):
-        await asyncio.sleep(self.timeout)
+        await asyncio.sleep(self.timeout / 1000)
         await self.callback()
 
     def cancel(self):

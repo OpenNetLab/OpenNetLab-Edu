@@ -15,6 +15,7 @@ class GBNSender(TCPClientNode):
             self.absno = 0
             self.seqno_width = int(cfg['seqno_width'])
             self.loss_rate = float(cfg['loss_rate'])
+            self.max_delay = int(cfg['max_delay'])
             self.testcases = cfg['testcases']
             self.timeout = float(cfg['timeout'])
             self.seqno_range = 2**self.seqno_width
@@ -27,7 +28,7 @@ class GBNSender(TCPClientNode):
     async def testcase_handler(self) -> bool:
         assert self.test_idx < len(self.testcases)
         message = self.testcases[self.test_idx]
-        ret = await self.student_task(message)
+        await self.student_task(message)
         ret = False
         if self.test_idx == len(self.testcases) - 1:
             ret = True
@@ -75,9 +76,11 @@ class StudentGBNSender(GBNSender):
         pass
 
     def is_valid_ackno(self, ackno):
-        if 0 <= ackno < self.seqno_range and len(self.outbound) > 0 and self.outbound[0]['seqno'] != ackno:
-            return True
-        return False
+        if not(0 <= ackno < self.seqno_range and len(self.outbound) > 0):
+            return False
+        if not any((pkt['seqno'] + 1) % self.window_size == ackno for pkt in self.outbound):
+            return False
+        return True
 
     async def send_available(self, message):
         while len(self.outbound) < self.window_size and self.absno < len(message):

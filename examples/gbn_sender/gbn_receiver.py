@@ -1,6 +1,5 @@
 import asyncio
 import json
-import random
 from datetime import datetime
 
 from OpenNetLab.node.server import TCPServerNode
@@ -15,6 +14,7 @@ class GBNReceiver(TCPServerNode):
             self.next_msg_idx = 0
             self.seq_no_width = int(cfg['seqno_width'])
             self.loss_rate = float(cfg['loss_rate'])
+            self.max_delay = int(cfg['max_delay'])
             self.testcases = cfg['testcases']
             self.test_idx = 0
             self.seqno_range = 2**self.seq_no_width
@@ -29,7 +29,7 @@ class GBNReceiver(TCPServerNode):
 
     async def recv_callback(self, data):
         if data['absno'] < len(self.message):
-            pkt = new_packet(0, 0, (data['absno'] + 1) % self.seqno_range, '')
+            pkt = new_packet(0, 0, self.next_seqno, '')
             await self.send(pkt)
             await self.log('ACK', data)
             await self.record('DUP', data)
@@ -38,17 +38,12 @@ class GBNReceiver(TCPServerNode):
             await self.log('DISCARD', data)
             await self.record('DISCARD', data)
             return
-        if self.is_loss():
-            await self.log('LOST', data)
-            await self.record('LOST', data)
-            return
         self.message += data['message']
         await self.record('RCVD', data)
         self.next_seqno = (self.next_seqno + 1) % self.seqno_range
         pkt = new_packet(0, 0, self.next_seqno, '')
-        if not self.is_loss():
-            await self.send(pkt)
-            await self.log('ACK', data)
+        await self.send(pkt)
+        await self.log('ACK', data)
 
     async def evaulate_testcase(self):
         assert self.test_idx < len(self.testcases)
@@ -69,9 +64,6 @@ class GBNReceiver(TCPServerNode):
               (len(self.success_test), len(self.testcases)))
         print('PASSED TESTS: %s' % self.success_test)
         print('FAILED TESTS: %s' % self.failed_test)
-
-    def is_loss(self):
-        return random.random() < self.loss_rate
 
     async def log(self, act, data):
         if not self.verbose:

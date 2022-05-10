@@ -13,14 +13,18 @@ from ..utils.recorder import Recorder
 
 class TCPServerNode(abc.ABC):
     def __init__(self):
-        self.debug = True
+        self._debug = True
         self.host, self.port, self.client_host, self.client_port = _parse_args()
-        self.chunk_size = 4096
-        self.loop = asyncio.get_event_loop()
-        self.sock = self._create_socket()
-        self.EOT_CHAR = 0x04.to_bytes(1, 'big')
-        self.id = self._generate_id()
-        self.recorder = Recorder(os.getcwd() + '/results')
+        self._chunk_size = 4096
+        self._loop = asyncio.get_event_loop()
+        self._sock = self._create_socket()
+        self._EOT_CHAR = 0x04.to_bytes(1, 'big')
+        self._id = self._generate_id()
+        self._recorder = Recorder(os.getcwd() + '/results')
+
+    @property
+    def recorder(self):
+        return self._recorder
 
     @abc.abstractmethod
     async def setup(self):
@@ -93,7 +97,7 @@ class TCPServerNode(abc.ABC):
             self._debug_print('waiting for message from client')
             while not ending:
                 try:
-                    chunk = await self.loop.sock_recv(self.conn, self.chunk_size)
+                    chunk = await self._loop.sock_recv(self.conn, self._chunk_size)
                 except socket.timeout as e:
                     logging.error(f'TIMEOUT before receiving any data: %s' % str(e))
                     break
@@ -103,7 +107,7 @@ class TCPServerNode(abc.ABC):
 
                 if chunk != b'':
                     buffer += chunk
-                    eot_pos = buffer.find(self.EOT_CHAR)
+                    eot_pos = buffer.find(self._EOT_CHAR)
                     while eot_pos != -1:
                         packet_bytes = buffer[:eot_pos]
                         buffer = buffer[eot_pos+1:]
@@ -113,11 +117,11 @@ class TCPServerNode(abc.ABC):
                             break
                         elif packet.packet_type == PacketType.EXPIREMENT_DATA:
                             await self.recv_callback(packet.payload)
-                            eot_pos = buffer.find(self.EOT_CHAR)
+                            eot_pos = buffer.find(self._EOT_CHAR)
                         elif packet.packet_type == PacketType.END_TESTCASE:
                             await self.evaulate_testcase()
                             await self.send('', PacketType.START_TESTCASE)
-                            eot_pos = buffer.find(self.EOT_CHAR)
+                            eot_pos = buffer.find(self._EOT_CHAR)
                         else:
                             logging.error('Erorr: unrecgonized packet type: %d' % packet.packet_type)
                             break
@@ -129,7 +133,7 @@ class TCPServerNode(abc.ABC):
         basic data types
         """
         if self.conn is not None:
-            await self.loop.sock_sendall(self.conn, ONLPacket(packet_type, data).to_bytes() + self.EOT_CHAR)
+            await self._loop.sock_sendall(self.conn, ONLPacket(packet_type, data).to_bytes() + self._EOT_CHAR)
 
     async def _receive_client_connection(self):
         """Receive the connection from client.
@@ -142,7 +146,7 @@ class TCPServerNode(abc.ABC):
         """
         try:
             while True:
-                conn, addr = await self.loop.sock_accept(self.sock)
+                conn, addr = await self._loop.sock_accept(self._sock)
                 if addr[0] == self.client_host or addr[1] == self.client_port:
                     self._debug_print('recieve connection from %s:%d' % addr)
                     self.conn = conn
@@ -175,5 +179,5 @@ class TCPServerNode(abc.ABC):
         return uid.hexdigest()
 
     def _debug_print(self, msg):
-        if self.debug:
+        if self._debug:
             print(msg)

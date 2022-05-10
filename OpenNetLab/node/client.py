@@ -11,14 +11,32 @@ from .common import _parse_args
 
 class TCPClientNode(abc.ABC):
     def __init__(self):
-        self.debug = True
+        self._debug = True
         self.host, self.port, self.server_host, self.server_port = _parse_args()
-        self.buffer = b''
-        self.chunk_size = 4096
-        self.loop = asyncio.get_event_loop()
-        self.sock = self._create_socket()
-        self.id = self._generate_id()
-        self.EOT_CHAR = 0x04.to_bytes(1, 'big')
+        self._buffer = b''
+        self._chunk_size = 4096
+        self._loop = asyncio.get_event_loop()
+        self._sock = self._create_socket()
+        self._id = self._generate_id()
+        self._EOT_CHAR = 0x04.to_bytes(1, 'big')
+        self._loss_rate = 0
+        self._max_delay = 0
+
+    @property
+    def max_delay(self):
+        return self.max_delay
+
+    @max_delay.setter
+    def max_delay(self, value):
+        self._max_delay = value
+
+    @property
+    def loss_rate(self):
+        return self._loss_rate
+
+    @loss_rate.setter
+    def loss_rate(self, value):
+        self._loss_rate = value
 
     @abc.abstractmethod
     async def setup(self):
@@ -89,7 +107,20 @@ class TCPClientNode(abc.ABC):
         """Send expirement data to server, the type of data can be any python
         basic data types
         """
-        await self.loop.sock_sendall(self.sock, ONLPacket(PacketType.EXPIREMENT_DATA, data).to_bytes() + self.EOT_CHAR)
+        def is_loss():
+            if self._loss_rate == 0:
+                return False
+            return random.random() < self._loss_rate
+        if is_loss():
+            return
+        if self._max_delay != 0:
+            self._loop.create_task(self._wait_send(data, random.randint(0, self._max_delay)))
+        else:
+            await self._loop.sock_sendall(self._sock, ONLPacket(PacketType.EXPIREMENT_DATA, data).to_bytes() + self._EOT_CHAR)
+
+    async def _wait_send(self, data, delay):
+        await asyncio.sleep(delay / 1000)
+        await self._loop.sock_sendall(self._sock, ONLPacket(PacketType.EXPIREMENT_DATA, data).to_bytes() + self._EOT_CHAR)
 
     async def recv_next_packet(self):
         """Receive the next packet from server
@@ -100,18 +131,18 @@ class TCPClientNode(abc.ABC):
         chunk = b''
         try:
             # chunk = await self.loop.sock_recv(self.sock, self.chunk_size)
-            chunk = self.sock.recv(self.chunk_size)
+            chunk = self._sock.recv(self._chunk_size)
         except BlockingIOError as _:
             pass
         except Exception as e:
             self._debug_print('Error: ' + str(e))
 
         if chunk != b'':
-            self.buffer += chunk
-        eot_pos = self.buffer.find(self.EOT_CHAR)
+            self._buffer += chunk
+        eot_pos = self._buffer.find(self._EOT_CHAR)
         if eot_pos != -1:
-            packet_bytes = self.buffer[:eot_pos]
-            self.buffer = self.buffer[eot_pos+1:]
+            packet_bytes = self._buffer[:eot_pos]
+            self._buffer = self._buffer[eot_pos+1:]
             return ONLPacket.from_bytes(packet_bytes)
         else:
             return None
@@ -121,10 +152,10 @@ class TCPClientNode(abc.ABC):
 
         Send a message to server to close the connection.
         """
-        await self.loop.sock_sendall(self.sock, ONLPacket(PacketType.END_EXPERIMENT, '').to_bytes() + self.EOT_CHAR)
+        await self._loop.sock_sendall(self._sock, ONLPacket(PacketType.END_EXPERIMENT, '').to_bytes() + self._EOT_CHAR)
 
     def __str__(self):
-        return 'Node %s (%s : %d)' % (self.id, self.host, self.port)
+        return 'Node %s (%s : %d)' % (self._id, self.host, self.port)
 
     def _create_socket(self):
         """Create socket and set some socket options.
@@ -145,7 +176,7 @@ class TCPClientNode(abc.ABC):
         ret = False
         for i in range(MAX_RETRY):
             try:
-                await self.loop.sock_connect(self.sock, (self.server_host, self.server_port))
+                await self._loop.sock_connect(self._sock, (self.server_host, self.server_port))
                 ret = True
                 break
             except Exception as _:
@@ -164,7 +195,7 @@ class TCPClientNode(abc.ABC):
         evaluation process has been finished, which means the server is ready
         for handling the next testcase.
         """
-        await self.loop.sock_sendall(self.sock, ONLPacket(PacketType.END_TESTCASE, '').to_bytes() + self.EOT_CHAR)
+        await self._loop.sock_sendall(self._sock, ONLPacket(PacketType.END_TESTCASE, '').to_bytes() + self._EOT_CHAR)
 
     def _generate_id(self):
         """Generate the unique node ID.
@@ -175,5 +206,5 @@ class TCPClientNode(abc.ABC):
         return uid.hexdigest()
 
     def _debug_print(self, msg):
-        if self.debug:
+        if self._debug:
             print(msg)
