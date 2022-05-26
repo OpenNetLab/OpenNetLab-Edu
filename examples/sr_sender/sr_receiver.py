@@ -11,7 +11,6 @@ class GBNReceiver(TCPServerNode):
         with open('./lab_config.json') as fp:
             cfg = json.load(fp)
             # lab
-            self.next_msg_idx = 0
             self.seq_no_width = int(cfg['seqno_width'])
             self.loss_rate = float(cfg['loss_rate'])
             self.max_delay = int(cfg['max_delay'])
@@ -29,13 +28,13 @@ class GBNReceiver(TCPServerNode):
             # record
             self.recorder.set_headers(
                 ('time', 'absno', 'seqno', 'message', 'status'))
-            self.verbose = False
+            self.verbose = True
 
     def is_valid_seqno(self, seqno):
         last_seqno = (seqno + self.window_size - 1)
         if last_seqno <= self.seqno_range - 1:
             return self.next_seqno <= seqno <= last_seqno
-        return (0 <= seqno <= last_seqno) or (self.next_seqno <= seqno <= self.seqno_range - 1)
+        return (0 <= seqno <= last_seqno % self.seqno_range) or (self.next_seqno <= seqno <= self.seqno_range - 1)
 
     async def recv_callback(self, data):
         if data['absno'] < len(self.message):
@@ -50,10 +49,18 @@ class GBNReceiver(TCPServerNode):
             await self.record('DISCARD', data)
             return
         rel_idx = ((seqno + self.seqno_range) - self.next_seqno) % self.window_size
-        await self.record('RCVD', data)
-        pkt = new_packet(0, 0, self.next_seqno, '')
-        await self.send(pkt)
-        await self.log('ACK', data)
+        self.recv_window[(self.recv_start + rel_idx) % self.window_size] = data
+        while self.recv_window[self.recv_start] is not None:
+            data = self.recv_window[self.recv_start]
+            assert data
+            self.message += data['message']
+            self.recv_window[self.recv_start] = None
+            self.recv_start += (self.recv_start + 1) % self.window_size
+            await self.record('RCVD', data)
+            self.next_seqno = (self.next_seqno + 1) % self.seqno_range
+            pkt = new_packet(0, 0, self.next_seqno, '')
+            await self.send(pkt)
+            await self.log('ACK', data)
 
     async def evaulate_testcase(self):
         assert self.test_idx < len(self.testcases)
@@ -68,6 +75,8 @@ class GBNReceiver(TCPServerNode):
         self.test_idx += 1
         self.message = ''
         self.next_seqno = 0
+        self.recv_window = [None for _ in range(self.window_size)]
+        self.recv_start = 0
 
     async def teardown(self):
         print('[TEST CASES]: %d/%d PASSED' %

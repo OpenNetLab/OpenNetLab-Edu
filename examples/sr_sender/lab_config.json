@@ -1,9 +1,10 @@
 {
-  "seqno_width": 4,
+  "seqno_width": 2,
   "loss_rate": 0.1,
   "max_delay": 30,
   "timeout": 60,
   "testcases": [
-    "this_is_some_text"
+    "this_is_some_text",
+    "this_is_some_textdfkjdklfjdklfjklsdfjsdklfjlsdkfjdklf"
   ]
 }

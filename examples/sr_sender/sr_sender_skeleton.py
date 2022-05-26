@@ -1,24 +1,20 @@
 import asyncio
 import json
-from collections import deque
 
 from OpenNetLab.node.client import TCPClientNode
-from OpenNetLab.utils.timer import Timer
-from gbn_packet import new_packet
-from gbn_logger import logger
 
 
-class GBNSender(TCPClientNode):
+class SRSender(TCPClientNode):
     async def setup(self):
         with open('./lab_config.json') as fp:
             cfg = json.load(fp)
-            self.absno = 0
             self.seqno_width = int(cfg['seqno_width'])
             self.loss_rate = float(cfg['loss_rate'])
+            self.max_delay = int(cfg['max_delay'])
             self.testcases = cfg['testcases']
             self.timeout = float(cfg['timeout'])
             self.seqno_range = 2**self.seqno_width
-            self.window_size = self.seqno_range - 1
+            self.window_size = self.seqno_range // 2
             self.test_idx = 0
 
     async def student_task(self, message):
@@ -27,7 +23,7 @@ class GBNSender(TCPClientNode):
     async def testcase_handler(self) -> bool:
         assert self.test_idx < len(self.testcases)
         message = self.testcases[self.test_idx]
-        ret = await self.student_task(message)
+        await self.student_task(message)
         ret = False
         if self.test_idx == len(self.testcases) - 1:
             ret = True
@@ -35,16 +31,27 @@ class GBNSender(TCPClientNode):
         return ret
 
 
-class StudentGBNSender(GBNSender):
+class StudentSRSender(SRSender):
     async def setup(self):
-        pass
+        await super().setup()
+        """
+        @TODO: setup user data structure
+        """
 
     async def student_task(self, message):
-        pass
+        """
+        @TODO: main sr sender logic
+        """
+
+    async def teardown(self):
+        await super().teardown()
+        """
+        @TODO: teardown
+        """
 
 
 async def main():
-    sender = StudentGBNSender()
+    sender = StudentSRSender()
     await sender.run()
 
 if __name__ == '__main__':
