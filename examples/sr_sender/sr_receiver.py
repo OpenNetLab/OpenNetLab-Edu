@@ -28,7 +28,7 @@ class GBNReceiver(TCPServerNode):
             # record
             self.recorder.set_headers(
                 ('time', 'absno', 'seqno', 'message', 'status'))
-            self.verbose = True
+            self.verbose = False
 
     def is_valid_seqno(self, seqno):
         last_seqno = (seqno + self.window_size - 1)

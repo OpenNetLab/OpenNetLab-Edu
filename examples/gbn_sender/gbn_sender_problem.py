@@ -43,7 +43,12 @@ class StudentGBNSender(GBNSender):
         await super().teardown()
 
     async def student_task(self, message):
-        pass
+        for idx, c in enumerate(message):
+            pkt = new_packet(idx, idx % self.seqno_range, 0, c)
+            for _ in range(10):
+                await self.send(pkt)
+            await self.recv_next_packet()
+            await asyncio.sleep(0.01)
 
 
 async def main():

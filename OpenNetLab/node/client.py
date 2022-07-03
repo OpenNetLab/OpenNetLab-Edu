@@ -99,7 +99,7 @@ class TCPClientNode(abc.ABC):
                     if packet:
                         break
                     await asyncio.sleep(0.1)
-                assert packet.packet_type == PacketType.START_TESTCASE
+                # assert packet.packet_type == PacketType.START_TESTCASE
             await self.finish()
         await self.teardown()
 

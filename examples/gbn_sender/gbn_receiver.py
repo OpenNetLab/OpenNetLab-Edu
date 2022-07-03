@@ -25,7 +25,7 @@ class GBNReceiver(TCPServerNode):
             self.success_test = []
             self.recorder.set_headers(
                 ('time', 'absno', 'seqno', 'message', 'status'))
-            self.verbose = False
+            self.verbose = True
 
     async def recv_callback(self, data):
         if data['absno'] < len(self.message):
