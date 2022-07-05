@@ -4,9 +4,11 @@ import random
 import socket
 import abc
 import logging
+import os
 
 from ..protocol.packet import *
 from .common import _parse_args
+from ..utils import Recorder
 
 
 class TCPClientNode(abc.ABC):
@@ -21,6 +23,8 @@ class TCPClientNode(abc.ABC):
         self._EOT_CHAR = 0x04.to_bytes(1, 'big')
         self._loss_rate = 0
         self._max_delay = 0
+        self._recorder = Recorder(os.getcwd() + '/judge')
+        self.enable_recording = False
 
     @property
     def max_delay(self):
@@ -93,6 +97,7 @@ class TCPClientNode(abc.ABC):
             while not finished:
                 finished = await self.testcase_handler()
                 await self._end_testcase()
+                self._recorder.start_next_testcase()
                 packet = None
                 while True:
                     packet = await self.recv_next_packet()
@@ -102,6 +107,7 @@ class TCPClientNode(abc.ABC):
                 # assert packet.packet_type == PacketType.START_TESTCASE
             await self.finish()
         await self.teardown()
+        self._recorder.close()
 
     async def send(self, data):
         """Send expirement data to server, the type of data can be any python
@@ -117,6 +123,8 @@ class TCPClientNode(abc.ABC):
             self._loop.create_task(self._wait_send(data, random.randint(0, self._max_delay)))
         else:
             await self._loop.sock_sendall(self._sock, ONLPacket(PacketType.EXPIREMENT_DATA, data).to_bytes() + self._EOT_CHAR)
+        if self.enable_recording:
+            self._recorder.add_send_record(data)
 
     async def _wait_send(self, data, delay):
         await asyncio.sleep(delay / 1000)
@@ -143,7 +151,10 @@ class TCPClientNode(abc.ABC):
         if eot_pos != -1:
             packet_bytes = self._buffer[:eot_pos]
             self._buffer = self._buffer[eot_pos+1:]
-            return ONLPacket.from_bytes(packet_bytes)
+            packet = ONLPacket.from_bytes(packet_bytes)
+            if self.enable_recording and packet.packet_type == PacketType.EXPIREMENT_DATA:
+                self._recorder.add_recv_record(packet.payload)
+            return packet
         else:
             return None
 

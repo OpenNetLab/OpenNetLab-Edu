@@ -20,7 +20,7 @@ class TCPServerNode(abc.ABC):
         self._sock = self._create_socket()
         self._EOT_CHAR = 0x04.to_bytes(1, 'big')
         self._id = self._generate_id()
-        self._recorder = Recorder(os.getcwd() + '/results')
+        self._recorder = Recorder(os.getcwd() + '/judge')
 
     @property
     def recorder(self):
@@ -125,7 +125,7 @@ class TCPServerNode(abc.ABC):
                         else:
                             logging.error('Erorr: unrecgonized packet type: %d' % packet.packet_type)
                             break
-        self.recorder.close()
+        self._recorder.close()
         await self.teardown()
 
     async def send(self, data, packet_type=PacketType.EXPIREMENT_DATA):

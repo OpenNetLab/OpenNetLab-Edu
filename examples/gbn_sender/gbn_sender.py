@@ -2,8 +2,8 @@ import asyncio
 import json
 from collections import deque
 
-from OpenNetLab.node.client import TCPClientNode
-from OpenNetLab.utils.timer import Timer
+from OpenNetLab.node import TCPClientNode
+from OpenNetLab.utils import Timer
 from gbn_packet import new_packet
 from gbn_logger import logger
 
@@ -21,6 +21,7 @@ class GBNSender(TCPClientNode):
             self.seqno_range = 2**self.seqno_width
             self.window_size = self.seqno_range - 1
             self.test_idx = 0
+            self.enable_recording = True
 
     async def student_task(self, message):
         pass

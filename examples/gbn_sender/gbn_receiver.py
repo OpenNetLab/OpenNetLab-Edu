@@ -2,7 +2,7 @@ import asyncio
 import json
 from datetime import datetime
 
-from OpenNetLab.node.server import TCPServerNode
+from OpenNetLab.node import TCPServerNode
 from gbn_packet import new_packet
 from gbn_logger import logger
 
@@ -23,23 +23,18 @@ class GBNReceiver(TCPServerNode):
             self.message = ''
             self.failed_test = []
             self.success_test = []
-            self.recorder.set_headers(
-                ('time', 'absno', 'seqno', 'message', 'status'))
-            self.verbose = True
+            self.verbose = False
 
     async def recv_callback(self, data):
         if data['absno'] < len(self.message):
             pkt = new_packet(0, 0, self.next_seqno, '')
             await self.send(pkt)
             await self.log('ACK', data)
-            await self.record('DUP', data)
             return
         if data['seqno'] != self.next_seqno:
             await self.log('DISCARD', data)
-            await self.record('DISCARD', data)
             return
         self.message += data['message']
-        await self.record('RCVD', data)
         self.next_seqno = (self.next_seqno + 1) % self.seqno_range
         pkt = new_packet(0, 0, self.next_seqno, '')
         await self.send(pkt)
@@ -77,10 +72,6 @@ class GBNReceiver(TCPServerNode):
         elif act == 'LOST':
             logger.warning('[LOST]: seqno %d on message %s is lost' %
                            (data['seqno'], data['message']))
-
-    async def record(self, act, data):
-        self.recorder.add_record(self.test_idx, (datetime.now().strftime(
-            '%H:%M:%S.%f'), data['absno'], self.next_seqno, data['message'], act))
 
 
 async def main():

@@ -11,42 +11,41 @@ class Recorder:
     def __init__(self, outdir_path):
         self.outdir_path = outdir_path
         self.fp = None
-        self.cur_idx = -1
-        self.headers = None
-        self.record = None
-        self.records = []
+        self.testcase_idx = -1
+        self.all_records = []
 
-    def set_headers(self, headers):
-        self.headers = headers
-
-    def open(self, test_idx):
-        if not self.headers:
-            return
+    def open(self):
         output_dir = Path(self.outdir_path)
         if not output_dir.exists():
             output_dir.mkdir()
-        self.fp = open(f'{output_dir}/test_record{test_idx}.json', 'w')
-        self.headers = self.headers
+        self.fp = open(f'{output_dir}/test_record{self.testcase_idx}.json', 'w')
         return self
 
     def close(self):
         if self.fp:
-            json.dump(self.records, self.fp)
+            json.dump(self.all_records, self.fp)
             self.fp.close()
 
-    def add_record(self, test_idx, row_data):
-        if not self.headers:
-            return
-        if test_idx != self.cur_idx:
-            self.close()
-            self.open(test_idx)
-            self.cur_idx = test_idx
+    def start_next_testcase(self):
+        self.close()
+        self.testcase_idx += 1
+        self.open()
+
+    def add_send_record(self, packet):
         if not self.fp:
             return
-        if len(row_data) != len(self.headers):
-            raise ElementMatchError(f'Row and Header not matching: '
-                                    f'header length: {len(self.headers)}, row length: {len(row_data)}')
-        record = {}
-        for i, k in enumerate(self.headers):
-            record[k] = row_data[i]
-        self.records.append(record)
+        record = {
+            'type': 1,
+            'packet': packet
+        }
+        self.all_records.append(record)
+
+
+    def add_recv_record(self, packet):
+        if not self.fp:
+            return
+        record = {
+            'type': 0,
+            'packet': packet
+        }
+        self.all_records.append(record)
