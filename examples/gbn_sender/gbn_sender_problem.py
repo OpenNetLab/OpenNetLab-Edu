@@ -20,6 +20,7 @@ class GBNSender(TCPClientNode):
             self.seqno_range = 2**self.seqno_width
             self.window_size = self.seqno_range - 1
             self.test_idx = 0
+            self.enable_recording = True
 
     async def student_task(self, message):
         pass

@@ -63,8 +63,8 @@ class StudentGBNSender(GBNSender):
                 if self.is_valid_ackno(ackno):
                     while len(self.outbound) > 0 and self.outbound[0]['seqno'] != ackno:
                         tmp.append(str(self.outbound.popleft()['seqno']))
-                logger.debug('[ACK]: ackno %d received, Packets %s are acked' % (
-                    ackno, ','.join(tmp)))
+                # logger.debug('[ACK]: ackno %d received, Packets %s are acked' % (
+                #     ackno, ','.join(tmp)))
                 await self.send_available(message)
                 self.timer.reset()
             if len(self.outbound) == 0 and self.absno == len(message):
@@ -88,8 +88,8 @@ class StudentGBNSender(GBNSender):
             pkt = new_packet(self.absno, self.next_seqno,
                              0, message[self.absno])
             await self.send(pkt)
-            logger.info('[SEND]: Sending seqno %d on message %s' %
-                        (pkt['seqno'], pkt['message']))
+            # logger.info('[SEND]: Sending seqno %d on message %s' %
+            #             (pkt['seqno'], pkt['message']))
             self.next_seqno = (self.next_seqno + 1) % self.seqno_range
             self.absno += 1
             self.outbound.append(pkt)
@@ -97,8 +97,8 @@ class StudentGBNSender(GBNSender):
 
     async def timeout_handler(self):
         for pkt in self.outbound:
-            logger.error('[TIMEOUT]: Reseding seqno %d on message %s' %
-                         (pkt['seqno'], pkt['message']))
+            # logger.error('[TIMEOUT]: Reseding seqno %d on message %s' %
+            #              (pkt['seqno'], pkt['message']))
             await self.send(pkt)
         self.timer.reset()
 
