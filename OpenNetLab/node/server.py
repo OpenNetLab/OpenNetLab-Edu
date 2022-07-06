@@ -8,7 +8,7 @@ import logging
 
 from ..protocol.packet import *
 from .common import _parse_args
-from ..utils.recorder import Recorder
+from ._recorder import Recorder
 
 
 class TCPServerNode(abc.ABC):

@@ -5,10 +5,12 @@ import socket
 import abc
 import logging
 import os
+import time
+from copy import deepcopy
 
 from ..protocol.packet import *
 from .common import _parse_args
-from ..utils import Recorder
+from ._recorder import Recorder
 
 
 class TCPClientNode(abc.ABC):
@@ -25,6 +27,7 @@ class TCPClientNode(abc.ABC):
         self._max_delay = 0
         self._recorder = Recorder(os.getcwd() + '/judge')
         self.enable_recording = False
+        self._time_start = time.time()
 
     @property
     def max_delay(self):
@@ -92,12 +95,17 @@ class TCPClientNode(abc.ABC):
         """
         await self.setup()
         connected = await self._connect()
+        if self.enable_recording:
+            self._recorder.open()
         if connected:
             finished = False
             while not finished:
                 finished = await self.testcase_handler()
                 await self._end_testcase()
-                self._recorder.start_next_testcase()
+                if finished:
+                    self._recorder.close()
+                else:
+                    self._recorder.start_next_testcase()
                 packet = None
                 while True:
                     packet = await self.recv_next_packet()
@@ -107,7 +115,6 @@ class TCPClientNode(abc.ABC):
                 # assert packet.packet_type == PacketType.START_TESTCASE
             await self.finish()
         await self.teardown()
-        self._recorder.close()
 
     async def send(self, data):
         """Send expirement data to server, the type of data can be any python
@@ -117,14 +124,16 @@ class TCPClientNode(abc.ABC):
             if self._loss_rate == 0:
                 return False
             return random.random() < self._loss_rate
+        if self.enable_recording:
+            record = deepcopy(data)
+            record['time'] = int((time.time() - self._time_start) * 1000)
+            self._recorder.add_send_record(record)
         if is_loss():
             return
         if self._max_delay != 0:
             self._loop.create_task(self._wait_send(data, random.randint(0, self._max_delay)))
         else:
             await self._loop.sock_sendall(self._sock, ONLPacket(PacketType.EXPIREMENT_DATA, data).to_bytes() + self._EOT_CHAR)
-        if self.enable_recording:
-            self._recorder.add_send_record(data)
 
     async def _wait_send(self, data, delay):
         await asyncio.sleep(delay / 1000)
