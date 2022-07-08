@@ -28,6 +28,7 @@ class TCPClientNode(abc.ABC):
         self._recorder = Recorder(os.getcwd() + '/judge')
         self.enable_recording = False
         self._time_start = time.time()
+        self._testcase = 0
 
     @property
     def max_delay(self):
@@ -102,6 +103,7 @@ class TCPClientNode(abc.ABC):
             while not finished:
                 finished = await self.testcase_handler()
                 await self._end_testcase()
+                self._testcase += 1
                 if finished:
                     self._recorder.close()
                 else:
@@ -111,7 +113,7 @@ class TCPClientNode(abc.ABC):
                     packet = await self.recv_next_packet()
                     if packet:
                         break
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.01)
                 # assert packet.packet_type == PacketType.START_TESTCASE
             await self.finish()
         await self.teardown()
@@ -130,6 +132,7 @@ class TCPClientNode(abc.ABC):
             self._recorder.add_send_record(record)
         if is_loss():
             return
+        data['testcase'] = self._testcase
         if self._max_delay != 0:
             self._loop.create_task(self._wait_send(data, random.randint(0, self._max_delay)))
         else:
@@ -161,8 +164,12 @@ class TCPClientNode(abc.ABC):
             packet_bytes = self._buffer[:eot_pos]
             self._buffer = self._buffer[eot_pos+1:]
             packet = ONLPacket.from_bytes(packet_bytes)
+            data = packet.payload
+            if packet.packet_type == PacketType.EXPIREMENT_DATA and data['testcase'] != self._testcase:
+                return None
             if self.enable_recording and packet.packet_type == PacketType.EXPIREMENT_DATA:
-                self._recorder.add_recv_record(packet.payload)
+                del data['testcase']
+                self._recorder.add_recv_record(data)
             return packet
         else:
             return None

@@ -21,6 +21,7 @@ class TCPServerNode(abc.ABC):
         self._EOT_CHAR = 0x04.to_bytes(1, 'big')
         self._id = self._generate_id()
         self._recorder = Recorder(os.getcwd() + '/judge')
+        self._testcase = 0
 
     @property
     def recorder(self):
@@ -112,16 +113,20 @@ class TCPServerNode(abc.ABC):
                         packet_bytes = buffer[:eot_pos]
                         buffer = buffer[eot_pos+1:]
                         packet = ONLPacket.from_bytes(packet_bytes)
-                        if packet.packet_type == PacketType.END_EXPERIMENT:
-                            ending = True
-                            break
-                        elif packet.packet_type == PacketType.EXPIREMENT_DATA:
-                            await self.recv_callback(packet.payload)
+                        if packet.packet_type == PacketType.EXPIREMENT_DATA:
+                            data = packet.payload
+                            if data['testcase'] == self._testcase:
+                                await self.recv_callback(data)
                             eot_pos = buffer.find(self._EOT_CHAR)
                         elif packet.packet_type == PacketType.END_TESTCASE:
                             await self.evaulate_testcase()
+                            logging.info(f'[TESTCASE {self._testcase} FINISHED]')
+                            self._testcase += 1
                             await self.send('', PacketType.START_TESTCASE)
                             eot_pos = buffer.find(self._EOT_CHAR)
+                        elif packet.packet_type == PacketType.END_EXPERIMENT:
+                            ending = True
+                            break
                         else:
                             logging.error('Erorr: unrecgonized packet type: %d' % packet.packet_type)
                             break
@@ -132,7 +137,9 @@ class TCPServerNode(abc.ABC):
         """Send expirement data to client, the type of data can be any python
         basic data types
         """
-        if self.conn is not None:
+        if self.conn:
+            if data:
+                data['testcase'] = self._testcase
             await self._loop.sock_sendall(self.conn, ONLPacket(packet_type, data).to_bytes() + self._EOT_CHAR)
 
     async def _receive_client_connection(self):
