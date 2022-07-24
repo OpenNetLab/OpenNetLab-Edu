@@ -1,0 +1,14 @@
+{
+  "testcases": [
+    "www.baidu.com",
+    "pic1.zhimg.com",
+    "pic2.zhimg.com",
+    "pic3.zhimg.com",
+    "pic4.zhimg.com",
+    "static.zhimg.com",
+    "picb.zhiming.com"
+  ],
+  "expected": [
+    "14.215.177.38"
+  ]
+}
