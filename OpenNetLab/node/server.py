@@ -1,11 +1,8 @@
 import asyncio
-import hashlib
-import random
 import socket
 import struct
 import os
 import abc
-import logging
 
 from ..protocol.packet import *
 from .common import _parse_args
@@ -16,11 +13,10 @@ class TCPServerNode(abc.ABC):
     def __init__(self):
         self._debug = True
         self.host, self.port, self.client_host, self.client_port = _parse_args()
+        self.evaulate_here = False
         self._chunk_size = 4096
         self._loop = asyncio.get_event_loop()
         self._sock = self._create_socket()
-        self._EOT_CHAR = 0x04.to_bytes(1, 'big')
-        self._id = self._generate_id()
         self._recorder = Recorder(os.getcwd() + '/judge')
         self._testcase = 0
 
@@ -52,7 +48,6 @@ class TCPServerNode(abc.ABC):
         function.
         """
 
-    @abc.abstractmethod
     async def evaulate_testcase(self):
         """Evalate the test case.
 
@@ -92,10 +87,10 @@ class TCPServerNode(abc.ABC):
                 try:
                     chunk = await self._loop.sock_recv(self.conn, self._chunk_size)
                 except socket.timeout as e:
-                    logging.error(f'TIMEOUT before receiving any data: %s' % str(e))
+                    print(f'ERROR: timeout before receiving any data: %s' % str(e))
                     break
                 except Exception as e:
-                    logging.error('ERROR: ' + str(e))
+                    print('ERROR: ' + str(e))
                     break
 
                 if chunk != b'':
@@ -117,8 +112,9 @@ class TCPServerNode(abc.ABC):
                             onlp_len = struct.unpack('!h', buffer[:2])[0]
                             end_pos = 2 + onlp_len
                         elif packet.packet_type == PacketType.END_TESTCASE:
-                            await self.evaulate_testcase()
-                            logging.info(f'[TESTCASE {self._testcase} FINISHED]')
+                            if self.evaulate_here:
+                                await self.evaulate_testcase()
+                            print(f'TESTCASE {self._testcase} FINISHED')
                             self._testcase += 1
                             await self.send(None, PacketType.START_TESTCASE)
                             if len(buffer) < 2:
@@ -129,7 +125,7 @@ class TCPServerNode(abc.ABC):
                             ending = True
                             break
                         else:
-                            logging.error('Erorr: unrecgonized packet type: %d' % packet.packet_type)
+                            print('ERROR: unrecgonized packet type: %d' % packet.packet_type)
                             break
         self._recorder.close()
 
@@ -161,7 +157,7 @@ class TCPServerNode(abc.ABC):
                 else:
                     conn.close()
         except socket.timeout as _:
-            logging.error('Error: socket times out before receiving any viable connection')
+            print('ERROR: socket times out before receiving any viable connection')
             return False
         else:
             return True
@@ -176,14 +172,6 @@ class TCPServerNode(abc.ABC):
         sock.bind((self.host, self.port))
         sock.listen(1)
         return sock
-
-    def _generate_id(self):
-        """Generate the unique node ID.
-        """
-        uid = hashlib.sha256()
-        t = self.host + str(self.port) + str(random.randint(1, 99999999))
-        uid.update(t.encode('ascii'))
-        return uid.hexdigest()
 
     def _debug_print(self, msg):
         if self._debug:

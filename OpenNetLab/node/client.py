@@ -1,17 +1,14 @@
 import asyncio
-import hashlib
 import random
 import socket
 import struct
 import abc
-import logging
 import os
 import time
 
 from ..protocol.packet import *
 from .common import _parse_args
 from ._recorder import Recorder
-
 
 class TCPClientNode(abc.ABC):
     def __init__(self):
@@ -21,8 +18,6 @@ class TCPClientNode(abc.ABC):
         self._chunk_size = 4096
         self._loop = asyncio.get_event_loop()
         self._sock = self._create_socket()
-        self._id = self._generate_id()
-        self._EOT_CHAR = 0x04.to_bytes(1, 'big')
         self._loss_rate = 0
         self._max_delay = 0
         self._recorder = Recorder(os.getcwd() + '/judge')
@@ -74,6 +69,9 @@ class TCPClientNode(abc.ABC):
         using OpenNetLab.
         """
 
+    async def evaluate_testcase(self):
+        pass
+
     async def run(self):
         """Run the client node
 
@@ -94,6 +92,7 @@ class TCPClientNode(abc.ABC):
             while not finished:
                 finished = await self.testcase_handler()
                 await self._end_testcase()
+                print(f'TESTCASE {self._testcase} FINISHED')
                 self._testcase += 1
                 if self.enable_recording:
                     if finished:
@@ -107,7 +106,7 @@ class TCPClientNode(abc.ABC):
                         break
                     await asyncio.sleep(0.01)
                 # assert packet.packet_type == PacketType.START_TESTCASE
-            logging.info('TESTING FINISHED')
+            print('TESTING FINISHED')
             await self.finish()
 
     async def send(self, data):
@@ -136,6 +135,14 @@ class TCPClientNode(abc.ABC):
     async def _wait_send(self, onl_bytes, delay):
         await asyncio.sleep(delay / 1000)
         await self._loop.sock_sendall(self._sock, onl_bytes)
+
+    async def recv_data(self):
+        while True:
+            packet = await self.recv_next_packet()
+            if not packet:
+                await asyncio.sleep(0.01)
+                continue
+            return packet.payload
 
     async def recv_next_packet(self):
         """Receive the next packet from server
@@ -181,9 +188,6 @@ class TCPClientNode(abc.ABC):
         onl_bytes = struct.pack('!h', len(onl_bytes)) + onl_bytes
         await self._loop.sock_sendall(self._sock, onl_bytes)
 
-    def __str__(self):
-        return 'Node %s (%s : %d)' % (self._id, self.host, self.port)
-
     def _create_socket(self):
         """Create socket and set some socket options.
         """
@@ -211,7 +215,7 @@ class TCPClientNode(abc.ABC):
                     i, self.server_host, self.server_port))
                 await asyncio.sleep(2)
         if not ret:
-            logging.error('Error: fail to connect to server')
+            print('ERROR: Fail to connect to server')
         return ret
 
     async def _end_testcase(self):
@@ -225,14 +229,6 @@ class TCPClientNode(abc.ABC):
         onl_bytes = ONLPacket(PacketType.END_TESTCASE).to_bytes()
         onl_bytes = struct.pack('!h', len(onl_bytes)) + onl_bytes
         await self._loop.sock_sendall(self._sock, onl_bytes)
-
-    def _generate_id(self):
-        """Generate the unique node ID.
-        """
-        uid = hashlib.sha256()
-        t = self.host + str(self.port) + str(random.randint(1, 99999999))
-        uid.update(t.encode('ascii'))
-        return uid.hexdigest()
 
     def _debug_print(self, msg):
         if self._debug:
