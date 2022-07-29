@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import random
 import socket
+import struct
 import os
 import abc
 import logging
@@ -37,15 +38,6 @@ class TCPServerNode(abc.ABC):
         1. parse the lab config file
         2. create data structure required by expirement
         3. read in all the test cases
-        """
-
-    @abc.abstractmethod
-    async def teardown(self):
-        """Tear down the client node
-
-        This function should be overriden by derived class. teardown is
-        executed when all the test cases have finished. Derived class can
-        teardown its data structure in this function.
         """
 
     @abc.abstractmethod
@@ -108,22 +100,31 @@ class TCPServerNode(abc.ABC):
 
                 if chunk != b'':
                     buffer += chunk
-                    eot_pos = buffer.find(self._EOT_CHAR)
-                    while eot_pos != -1:
-                        packet_bytes = buffer[:eot_pos]
-                        buffer = buffer[eot_pos+1:]
+                    if len(buffer) < 2:
+                        continue
+                    onlp_len = struct.unpack('!h', buffer[:2])[0]
+                    end_pos = 2 + onlp_len
+                    while end_pos <= len(buffer):
+                        packet_bytes = buffer[2:end_pos]
+                        buffer = buffer[end_pos:]
                         packet = ONLPacket.from_bytes(packet_bytes)
                         if packet.packet_type == PacketType.EXPIREMENT_DATA:
                             data = packet.payload
-                            if data['testcase'] == self._testcase:
+                            if packet.idx == self._testcase:
                                 await self.recv_callback(data)
-                            eot_pos = buffer.find(self._EOT_CHAR)
+                            if len(buffer) < 2:
+                                break
+                            onlp_len = struct.unpack('!h', buffer[:2])[0]
+                            end_pos = 2 + onlp_len
                         elif packet.packet_type == PacketType.END_TESTCASE:
                             await self.evaulate_testcase()
                             logging.info(f'[TESTCASE {self._testcase} FINISHED]')
                             self._testcase += 1
-                            await self.send('', PacketType.START_TESTCASE)
-                            eot_pos = buffer.find(self._EOT_CHAR)
+                            await self.send(None, PacketType.START_TESTCASE)
+                            if len(buffer) < 2:
+                                continue
+                            onlp_len = struct.unpack('!h', buffer[:2])[0]
+                            end_pos = 2 + onlp_len
                         elif packet.packet_type == PacketType.END_EXPERIMENT:
                             ending = True
                             break
@@ -131,16 +132,15 @@ class TCPServerNode(abc.ABC):
                             logging.error('Erorr: unrecgonized packet type: %d' % packet.packet_type)
                             break
         self._recorder.close()
-        await self.teardown()
 
     async def send(self, data, packet_type=PacketType.EXPIREMENT_DATA):
         """Send expirement data to client, the type of data can be any python
         basic data types
         """
         if self.conn:
-            if data:
-                data['testcase'] = self._testcase
-            await self._loop.sock_sendall(self.conn, ONLPacket(packet_type, data).to_bytes() + self._EOT_CHAR)
+            onl_bytes = ONLPacket(packet_type, data, self._testcase).to_bytes()
+            onl_bytes = struct.pack('!h', len(onl_bytes)) + onl_bytes
+            await self._loop.sock_sendall(self.conn,  onl_bytes)
 
     async def _receive_client_connection(self):
         """Receive the connection from client.

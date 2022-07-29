@@ -2,11 +2,11 @@ import asyncio
 import hashlib
 import random
 import socket
+import struct
 import abc
 import logging
 import os
 import time
-from copy import deepcopy
 
 from ..protocol.packet import *
 from .common import _parse_args
@@ -74,15 +74,6 @@ class TCPClientNode(abc.ABC):
         using OpenNetLab.
         """
 
-    @abc.abstractmethod
-    async def teardown(self):
-        """Tear down the client node
-
-        This function should be overriden by derived class. teardown is
-        executed when all the test cases have finished. Derived class can
-        teardown its data structure in this function.
-        """
-
     async def run(self):
         """Run the client node
 
@@ -104,10 +95,11 @@ class TCPClientNode(abc.ABC):
                 finished = await self.testcase_handler()
                 await self._end_testcase()
                 self._testcase += 1
-                if finished:
-                    self._recorder.close()
-                else:
-                    self._recorder.start_next_testcase()
+                if self.enable_recording:
+                    if finished:
+                        self._recorder.close()
+                    else:
+                        self._recorder.start_next_testcase()
                 packet = None
                 while True:
                     packet = await self.recv_next_packet()
@@ -115,8 +107,8 @@ class TCPClientNode(abc.ABC):
                         break
                     await asyncio.sleep(0.01)
                 # assert packet.packet_type == PacketType.START_TESTCASE
+            logging.info('TESTING FINISHED')
             await self.finish()
-        await self.teardown()
 
     async def send(self, data):
         """Send expirement data to server, the type of data can be any python
@@ -127,20 +119,23 @@ class TCPClientNode(abc.ABC):
                 return False
             return random.random() < self._loss_rate
         if self.enable_recording:
+            from copy import deepcopy
             record = deepcopy(data)
             record['time'] = int((time.time() - self._time_start) * 1000)
             self._recorder.add_send_record(record)
         if is_loss():
             return
-        data['testcase'] = self._testcase
+        onlp = ONLPacket(PacketType.EXPIREMENT_DATA, data, self._testcase)
+        onl_bytes = onlp.to_bytes()
+        onl_bytes = struct.pack('!h', len(onl_bytes)) + onl_bytes
         if self._max_delay != 0:
-            self._loop.create_task(self._wait_send(data, random.randint(0, self._max_delay)))
+            self._loop.create_task(self._wait_send(onl_bytes, random.randint(0, self._max_delay)))
         else:
-            await self._loop.sock_sendall(self._sock, ONLPacket(PacketType.EXPIREMENT_DATA, data).to_bytes() + self._EOT_CHAR)
+            await self._loop.sock_sendall(self._sock, onl_bytes)
 
-    async def _wait_send(self, data, delay):
+    async def _wait_send(self, onl_bytes, delay):
         await asyncio.sleep(delay / 1000)
-        await self._loop.sock_sendall(self._sock, ONLPacket(PacketType.EXPIREMENT_DATA, data).to_bytes() + self._EOT_CHAR)
+        await self._loop.sock_sendall(self._sock, onl_bytes)
 
     async def recv_next_packet(self):
         """Receive the next packet from server
@@ -159,16 +154,19 @@ class TCPClientNode(abc.ABC):
 
         if chunk != b'':
             self._buffer += chunk
-        eot_pos = self._buffer.find(self._EOT_CHAR)
-        if eot_pos != -1:
-            packet_bytes = self._buffer[:eot_pos]
-            self._buffer = self._buffer[eot_pos+1:]
+        if len(self._buffer) < 2:
+            return None
+        onlp_len = struct.unpack('!h', self._buffer[:2])[0]
+        end_pos = 2 + onlp_len
+        if end_pos <= len(self._buffer):
+            packet_bytes = self._buffer[2:end_pos]
+            self._buffer = self._buffer[end_pos:]
             packet = ONLPacket.from_bytes(packet_bytes)
             data = packet.payload
-            if packet.packet_type == PacketType.EXPIREMENT_DATA and data['testcase'] != self._testcase:
+            # discard the packets that is not in the current testcase
+            if packet.packet_type == PacketType.EXPIREMENT_DATA and packet.idx != self._testcase:
                 return None
             if self.enable_recording and packet.packet_type == PacketType.EXPIREMENT_DATA:
-                del data['testcase']
                 self._recorder.add_recv_record(data)
             return packet
         else:
@@ -179,7 +177,9 @@ class TCPClientNode(abc.ABC):
 
         Send a message to server to close the connection.
         """
-        await self._loop.sock_sendall(self._sock, ONLPacket(PacketType.END_EXPERIMENT, '').to_bytes() + self._EOT_CHAR)
+        onl_bytes = ONLPacket(PacketType.END_EXPERIMENT).to_bytes()
+        onl_bytes = struct.pack('!h', len(onl_bytes)) + onl_bytes
+        await self._loop.sock_sendall(self._sock, onl_bytes)
 
     def __str__(self):
         return 'Node %s (%s : %d)' % (self._id, self.host, self.port)
@@ -222,7 +222,9 @@ class TCPClientNode(abc.ABC):
         evaluation process has been finished, which means the server is ready
         for handling the next testcase.
         """
-        await self._loop.sock_sendall(self._sock, ONLPacket(PacketType.END_TESTCASE, '').to_bytes() + self._EOT_CHAR)
+        onl_bytes = ONLPacket(PacketType.END_TESTCASE).to_bytes()
+        onl_bytes = struct.pack('!h', len(onl_bytes)) + onl_bytes
+        await self._loop.sock_sendall(self._sock, onl_bytes)
 
     def _generate_id(self):
         """Generate the unique node ID.
