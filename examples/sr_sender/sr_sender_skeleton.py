@@ -43,12 +43,6 @@ class StudentSRSender(SRSender):
         @TODO: main sr sender logic
         """
 
-    async def teardown(self):
-        await super().teardown()
-        """
-        @TODO: teardown
-        """
-
 
 async def main():
     sender = StudentSRSender()
@@ -56,8 +50,7 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main())
+        asyncio.run(main())
     except KeyboardInterrupt as _:
         print('keyboard interrupt accept, exit')
     except Exception as _:

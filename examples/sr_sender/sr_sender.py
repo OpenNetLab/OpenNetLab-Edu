@@ -56,10 +56,12 @@ class StudentSRSender(SRSender):
                 resp = pkt.payload
                 ackno = resp['ackno']
                 if self.is_valid_ackno(ackno):
-                    acked_seq = (ackno+self.seqno_range-1)%self.seqno_range
-                    rel_idx = (acked_seq + self.seqno_range - self.cur_seqno) % self.seqno_range
+                    acked_seq = (ackno+self.seqno_range-1) % self.seqno_range
+                    rel_idx = (acked_seq + self.seqno_range -
+                               self.cur_seqno) % self.seqno_range
                     self.outbound[rel_idx][1] = True
-                    logger.debug('[ACK]: ackno %d received, Packets %s are acked' % (ackno, acked_seq))
+                    logger.debug(
+                        '[ACK]: ackno %d received, Packets %s are acked' % (ackno, acked_seq))
                     await self.send_available(message)
             if len(self.outbound) == 0 and self.absno == len(message):
                 break
@@ -67,11 +69,8 @@ class StudentSRSender(SRSender):
 
         logger.debug('[TESTCASE %d FINISHED]' % self.test_idx)
 
-    async def teardown(self):
-        pass
-
     def is_valid_ackno(self, ackno):
-        acked_seq = (ackno+self.seqno_range-1)%self.seqno_range
+        acked_seq = (ackno+self.seqno_range-1) % self.seqno_range
         if self.cur_seqno < self.next_seqno:
             return self.cur_seqno <= acked_seq < self.next_seqno
         else:
@@ -84,9 +83,11 @@ class StudentSRSender(SRSender):
             timer.cancel()
             self.cur_seqno = (self.cur_seqno + 1) % self.seqno_range
         while len(self.outbound) < self.window_size and self.absno < len(message):
-            pkt = new_packet(self.absno, self.next_seqno, 0, message[self.absno])
+            pkt = new_packet(self.absno, self.next_seqno,
+                             0, message[self.absno])
             await self.send(pkt)
-            logger.info('[SEND]: Sending seqno %d on message %s' % (pkt['seqno'], pkt['message']))
+            logger.info('[SEND]: Sending seqno %d on message %s' %
+                        (pkt['seqno'], pkt['message']))
             self.next_seqno = (self.next_seqno + 1) % self.seqno_range
             self.absno += 1
             self.outbound.append([pkt, False])
@@ -107,8 +108,7 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main())
+        asyncio.run(main())
     except KeyboardInterrupt as _:
         print('keyboard interrupt accept, exit')
     except Exception as _:

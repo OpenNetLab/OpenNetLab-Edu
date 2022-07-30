@@ -11,19 +11,20 @@ class GBNReceiver(TCPServerNode):
     async def setup(self):
         with open('./lab_config.json') as fp:
             cfg = json.load(fp)
-            self.next_msg_idx = 0
             self.seq_no_width = int(cfg['seqno_width'])
             self.loss_rate = float(cfg['loss_rate'])
             self.max_delay = int(cfg['max_delay'])
             self.testcases = cfg['testcases']
-            self.test_idx = 0
-            self.seqno_range = 2**self.seq_no_width
-            self.window_size = self.seqno_range - 1
-            self.next_seqno = 0
-            self.message = ''
-            self.failed_test = []
-            self.success_test = []
-            self.verbose = False
+        self.next_msg_idx = 0
+        self.test_idx = 0
+        self.seqno_range = 2**self.seq_no_width
+        self.window_size = self.seqno_range - 1
+        self.next_seqno = 0
+        self.message = ''
+        self.failed_test = []
+        self.success_test = []
+        self.verbose = False
+        self.evaulate_here = True
 
     async def recv_callback(self, data):
         if data['absno'] < len(self.message):
@@ -80,8 +81,7 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main())
+        asyncio.run(main())
     except KeyboardInterrupt as _:
         print('keyboard interrupt accept, exit')
     except Exception as _:

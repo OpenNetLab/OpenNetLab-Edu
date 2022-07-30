@@ -6,6 +6,7 @@ from OpenNetLab.node.server import TCPServerNode
 from sr_packet import new_packet
 from sr_logger import logger
 
+
 class GBNReceiver(TCPServerNode):
     async def setup(self):
         with open('./lab_config.json') as fp:
@@ -25,9 +26,6 @@ class GBNReceiver(TCPServerNode):
             self.testcases = cfg['testcases']
             self.failed_test = []
             self.success_test = []
-            # record
-            self.recorder.set_headers(
-                ('time', 'absno', 'seqno', 'message', 'status'))
             self.verbose = False
 
     def is_valid_seqno(self, seqno):
@@ -41,14 +39,13 @@ class GBNReceiver(TCPServerNode):
             pkt = new_packet(0, 0, self.next_seqno, '')
             await self.send(pkt)
             await self.log('ACK', data)
-            await self.record('DUP', data)
             return
         seqno = data['seqno']
         if not self.is_valid_seqno(seqno):
             await self.log('DISCARD', data)
-            await self.record('DISCARD', data)
             return
-        rel_idx = ((seqno + self.seqno_range) - self.next_seqno) % self.window_size
+        rel_idx = ((seqno + self.seqno_range) -
+                   self.next_seqno) % self.window_size
         self.recv_window[(self.recv_start + rel_idx) % self.window_size] = data
         while self.recv_window[self.recv_start] is not None:
             data = self.recv_window[self.recv_start]
@@ -56,7 +53,6 @@ class GBNReceiver(TCPServerNode):
             self.message += data['message']
             self.recv_window[self.recv_start] = None
             self.recv_start += (self.recv_start + 1) % self.window_size
-            await self.record('RCVD', data)
             self.next_seqno = (self.next_seqno + 1) % self.seqno_range
             pkt = new_packet(0, 0, self.next_seqno, '')
             await self.send(pkt)
@@ -97,10 +93,6 @@ class GBNReceiver(TCPServerNode):
             logger.warning('[LOST]: seqno %d on message %s is lost' %
                            (data['seqno'], data['message']))
 
-    async def record(self, act, data):
-        self.recorder.add_record(self.test_idx, (datetime.now().strftime(
-            '%H:%M:%S.%f'), data['absno'], self.next_seqno, data['message'], act))
-
 
 async def main():
     receiver = GBNReceiver()
@@ -108,8 +100,7 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main())
+        asyncio.run(main())
     except KeyboardInterrupt as _:
         print('keyboard interrupt accept, exit')
     except Exception as _:

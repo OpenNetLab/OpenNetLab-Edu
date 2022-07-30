@@ -1,5 +1,5 @@
 import asyncio
-from OpenNetLab.node import TCPServerNode
+from OpenNetLab.node import TCPClientNode
 
 
 class Obj:
@@ -8,21 +8,21 @@ class Obj:
         self.b = b
 
 
-class UserServer(TCPServerNode):
+class UserClient(TCPClientNode):
     async def setup(self):
         pass
 
-    async def recv_callback(self, data):
-        print(data)
-
-    async def evaulate_testcase(self):
-        pass
+    async def testcase_handler(self):
+        await self.send(1234)
+        await self.send(b'\x11\x11\x11')
+        await self.send({'a': 12, 'b': 22})
+        await self.send(Obj(13, 'abc'))
+        return True
 
 
 async def main():
-    receiver = UserServer()
-    await receiver.run()
-
+    sender = UserClient()
+    await sender.run()
 
 if __name__ == '__main__':
     try:

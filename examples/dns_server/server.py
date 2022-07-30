@@ -13,12 +13,11 @@ class DNS_Relay_Server:  # 一个relay server实例，通过缓存文件和外�
         # trans字典：通过DNS响应的ID来获得原始的DNS数据包发送方
         self.trans = {}
 
-    def load_file(self,):
-        f = open(self.cache_file, 'r', encoding='utf-8')
-        for line in f:
-            ip, name = line.split(' ')
-            self.url_ip[name.strip('\n')] = ip
-        f.close()
+    def load_file(self):
+        with open(self.cache_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                ip, name = line.strip().split(' ')
+                self.url_ip[name] = ip
 
     def run(self):
         buffer_size = 512
@@ -36,33 +35,32 @@ class DNS_Relay_Server:  # 一个relay server实例，通过缓存文件和外�
                 continue
 
     def handle(self, server_socket, data, addr):
-        RecvDp = DNSPacket(data)
-        print("receive DNSpackage from "+str(addr)+" for "+RecvDp.name)
-        if RecvDp.QR == 0:  # and RecvDp.qtype == 1
-            name = RecvDp.name
+        recvdp = DNSPacket(data)
+        print("receive DNS packet from "+str(addr)+" for "+recvdp.name)
+        if recvdp.QR == 0:  # and RecvDp.qtype == 1
+            name = recvdp.name
             #print("query url:"+name)
-            if self.url_ip.get(name) != None:
+            if name in self.url_ip:
                 ip = self.url_ip[name]
                 #print('ip '+ip)
                 if ip != '0.0.0.0':
                    # print("reply")
-                    res = RecvDp.generate_response(ip, False)
+                    res = recvdp.generate_response(ip, False)
                 else:
                     #print("reply 0")
-                    res = RecvDp.generate_response(ip, True)
+                    res = recvdp.generate_response(ip, True)
                 print("resolve "+name+" with "+ip)
                 server_socket.sendto(res, addr)
             else:
-                self.trans[RecvDp.ID] = addr, name
+                self.trans[recvdp.ID] = addr, name
                 server_socket.sendto(data, self.name_server)
 
-        if RecvDp.QR == 1:
-            if self.trans.get(RecvDp.ID) != None:
-                idSRC, name = self.trans[RecvDp.ID]
-                print("relay reply  "+name + " to ")
-                print(idSRC)
-                server_socket.sendto(data, idSRC)
-                self.trans.pop(RecvDp.ID)
+        if recvdp.QR == 1:
+            if self.trans.get(recvdp.ID) != None:
+                src_ip, name = self.trans[recvdp.ID]
+                print("relay reply  "+ name + " to", src_ip)
+                server_socket.sendto(data, src_ip)
+                self.trans.pop(recvdp.ID)
 
 
 if __name__ == '__main__':

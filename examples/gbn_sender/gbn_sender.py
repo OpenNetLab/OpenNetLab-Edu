@@ -8,20 +8,20 @@ from gbn_packet import new_packet
 from gbn_logger import logger
 
 
-class GBNSender(TCPClientNode):
+class BaseGBNSender(TCPClientNode):
     async def setup(self):
         with open('./lab_config.json') as fp:
             cfg = json.load(fp)
-            self.absno = 0
             self.seqno_width = int(cfg['seqno_width'])
             self.loss_rate = float(cfg['loss_rate'])
             self.max_delay = int(cfg['max_delay'])
             self.testcases = cfg['testcases']
             self.timeout = float(cfg['timeout'])
-            self.seqno_range = 2**self.seqno_width
-            self.window_size = self.seqno_range - 1
-            self.test_idx = 0
-            self.enable_recording = True
+        self.absno = 0
+        self.seqno_range = 2**self.seqno_width
+        self.window_size = self.seqno_range - 1
+        self.test_idx = 0
+        self.enable_recording = False
 
     async def student_task(self, message):
         pass
@@ -37,7 +37,7 @@ class GBNSender(TCPClientNode):
         return ret
 
 
-class StudentGBNSender(GBNSender):
+class GBNSender(BaseGBNSender):
     async def setup(self):
         await super().setup()
         self.outbound = deque([], self.window_size)
@@ -52,26 +52,20 @@ class StudentGBNSender(GBNSender):
 
         await self.send_available(message)
         while True:
-            while True:
-                packet = await self.recv_next_packet()
-                if not packet:
-                    break
-                resp = packet.payload
-                ackno = resp['ackno']
-                tmp = []
-                tmp.clear()
-                if self.is_valid_ackno(ackno):
-                    while len(self.outbound) > 0 and self.outbound[0]['seqno'] != ackno:
-                        tmp.append(str(self.outbound.popleft()['seqno']))
-                # logger.debug('[ACK]: ackno %d received, Packets %s are acked' % (
-                #     ackno, ','.join(tmp)))
-                await self.send_available(message)
-                self.timer.reset()
+            resp = await self.recv_data()
+            ackno = resp['ackno']
+            tmp = []
+            tmp.clear()
+            if self.is_valid_ackno(ackno):
+                while len(self.outbound) > 0 and self.outbound[0]['seqno'] != ackno:
+                    tmp.append(str(self.outbound.popleft()['seqno']))
+            # logger.debug('[ACK]: ackno %d received, Packets %s are acked' % (
+            #     ackno, ','.join(tmp)))
+            await self.send_available(message)
+            self.timer.reset()
             if len(self.outbound) == 0 and self.absno == len(message):
                 break
-            await asyncio.sleep(0.02)
 
-        logger.debug('[TESTCASE %d FINISHED]' % self.test_idx)
 
     async def teardown(self):
         pass
@@ -104,13 +98,12 @@ class StudentGBNSender(GBNSender):
 
 
 async def main():
-    sender = StudentGBNSender()
+    sender = GBNSender()
     await sender.run()
 
 if __name__ == '__main__':
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main())
+        asyncio.run(main())
     except KeyboardInterrupt as _:
         print('keyboard interrupt accept, exit')
     except Exception as _:
