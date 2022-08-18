@@ -23,13 +23,13 @@ class BaseGBNSender(TCPClientNode):
         self.test_idx = 0
         self.enable_recording = False
 
-    async def student_task(self, message):
+    async def send_message(self, message):
         pass
 
     async def testcase_handler(self) -> bool:
         assert self.test_idx < len(self.testcases)
         message = self.testcases[self.test_idx]
-        await self.student_task(message)
+        await self.send_message(message)
         ret = False
         if self.test_idx == len(self.testcases) - 1:
             ret = True
@@ -44,7 +44,7 @@ class GBNSender(BaseGBNSender):
         self.next_seqno = 0
         self.timer = Timer(self.timeout, self.timeout_handler)
 
-    async def student_task(self, message):
+    async def send_message(self, message):
         self.outbound.clear()
         self.next_seqno = 0
         self.absno = 0
@@ -65,10 +65,6 @@ class GBNSender(BaseGBNSender):
             self.timer.reset()
             if len(self.outbound) == 0 and self.absno == len(message):
                 break
-
-
-    async def teardown(self):
-        pass
 
     def is_valid_ackno(self, ackno):
         if not(0 <= ackno < self.seqno_range and len(self.outbound) > 0):

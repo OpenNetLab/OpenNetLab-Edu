@@ -8,7 +8,7 @@ from gbn_packet import new_packet
 from gbn_logger import logger
 
 
-class GBNSender(TCPClientNode):
+class BaseGBNSender(TCPClientNode):
     async def setup(self):
         with open('./lab_config.json') as fp:
             cfg = json.load(fp)
@@ -36,12 +36,9 @@ class GBNSender(TCPClientNode):
         return ret
 
 
-class StudentGBNSender(GBNSender):
+class GBNSender(BaseGBNSender):
     async def setup(self):
         await super().setup()
-
-    async def teardown(self):
-        await super().teardown()
 
     async def student_task(self, message):
         for idx, c in enumerate(message):
@@ -53,13 +50,12 @@ class StudentGBNSender(GBNSender):
 
 
 async def main():
-    sender = StudentGBNSender()
+    sender = GBNSender()
     await sender.run()
 
 if __name__ == '__main__':
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main())
+        asyncio.run(main())
     except KeyboardInterrupt as _:
         print('keyboard interrupt accept, exit')
     except Exception as _:

@@ -8,7 +8,7 @@ from sr_packet import new_packet
 from sr_logger import logger
 
 
-class SRSender(TCPClientNode):
+class BaseSRSender(TCPClientNode):
     async def setup(self):
         with open('./lab_config.json') as fp:
             cfg = json.load(fp)
@@ -21,13 +21,13 @@ class SRSender(TCPClientNode):
             self.window_size = self.seqno_range // 2
             self.test_idx = 0
 
-    async def student_task(self, message):
+    async def send_message(self, message):
         pass
 
     async def testcase_handler(self) -> bool:
         assert self.test_idx < len(self.testcases)
         message = self.testcases[self.test_idx]
-        await self.student_task(message)
+        await self.send_message(message)
         ret = False
         if self.test_idx == len(self.testcases) - 1:
             ret = True
@@ -35,13 +35,13 @@ class SRSender(TCPClientNode):
         return ret
 
 
-class StudentSRSender(SRSender):
+class SRSender(BaseSRSender):
     async def setup(self):
         await super().setup()
         self.outbound = deque([], self.window_size)
         self.timers = deque([], self.window_size)
 
-    async def student_task(self, message):
+    async def send_message(self, message):
         self.cur_seqno = 0
         self.next_seqno = 0
         self.outbound.clear()
@@ -49,23 +49,18 @@ class StudentSRSender(SRSender):
         await self.send_available(message)
 
         while True:
-            while True:
-                pkt = await self.recv_next_packet()
-                if not pkt:
-                    break
-                resp = pkt.payload
-                ackno = resp['ackno']
-                if self.is_valid_ackno(ackno):
-                    acked_seq = (ackno+self.seqno_range-1) % self.seqno_range
-                    rel_idx = (acked_seq + self.seqno_range -
-                               self.cur_seqno) % self.seqno_range
-                    self.outbound[rel_idx][1] = True
-                    logger.debug(
-                        '[ACK]: ackno %d received, Packets %s are acked' % (ackno, acked_seq))
-                    await self.send_available(message)
+            resp = await self.recv_data()
+            ackno = resp['ackno']
+            if self.is_valid_ackno(ackno):
+                acked_seq = (ackno+self.seqno_range-1) % self.seqno_range
+                rel_idx = (acked_seq + self.seqno_range -
+                           self.cur_seqno) % self.seqno_range
+                self.outbound[rel_idx][1] = True
+                logger.debug(
+                    '[ACK]: ackno %d received, Packets %s are acked' % (ackno, acked_seq))
+                await self.send_available(message)
             if len(self.outbound) == 0 and self.absno == len(message):
                 break
-            await asyncio.sleep(0.02)
 
         logger.debug('[TESTCASE %d FINISHED]' % self.test_idx)
 
@@ -103,7 +98,7 @@ class StudentSRSender(SRSender):
 
 
 async def main():
-    sender = StudentSRSender()
+    sender = SRSender()
     await sender.run()
 
 if __name__ == '__main__':

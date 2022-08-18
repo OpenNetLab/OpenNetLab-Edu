@@ -59,6 +59,7 @@ class DNS_Relay_Server:  # 一个relay server实例，通过缓存文件和外�
             if self.trans.get(recvdp.ID) != None:
                 src_ip, name = self.trans[recvdp.ID]
                 print("relay reply  "+ name + " to", src_ip)
+                print(data)
                 server_socket.sendto(data, src_ip)
                 self.trans.pop(recvdp.ID)
 

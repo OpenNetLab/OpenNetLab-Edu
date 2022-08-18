@@ -1,13 +1,12 @@
 import asyncio
 import json
-from datetime import datetime
 
 from OpenNetLab.node.server import TCPServerNode
 from sr_packet import new_packet
 from sr_logger import logger
 
 
-class GBNReceiver(TCPServerNode):
+class SRReceiver(TCPServerNode):
     async def setup(self):
         with open('./lab_config.json') as fp:
             cfg = json.load(fp)
@@ -27,6 +26,7 @@ class GBNReceiver(TCPServerNode):
             self.failed_test = []
             self.success_test = []
             self.verbose = False
+            self.evaulate_here = True
 
     def is_valid_seqno(self, seqno):
         last_seqno = (seqno + self.window_size - 1)
@@ -74,12 +74,6 @@ class GBNReceiver(TCPServerNode):
         self.recv_window = [None for _ in range(self.window_size)]
         self.recv_start = 0
 
-    async def teardown(self):
-        print('[TEST CASES]: %d/%d PASSED' %
-              (len(self.success_test), len(self.testcases)))
-        print('PASSED TESTS: %s' % self.success_test)
-        print('FAILED TESTS: %s' % self.failed_test)
-
     async def log(self, act, data):
         if not self.verbose:
             return
@@ -95,7 +89,7 @@ class GBNReceiver(TCPServerNode):
 
 
 async def main():
-    receiver = GBNReceiver()
+    receiver = SRReceiver()
     await receiver.run()
 
 if __name__ == '__main__':

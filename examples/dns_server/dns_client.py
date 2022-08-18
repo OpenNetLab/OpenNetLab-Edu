@@ -16,7 +16,9 @@ def decode_ip(data: bytes) -> str:
 class DNSClient(TCPClientNode):
     async def setup(self):
         with open('./lab_config.json', 'r') as fp:
-            self.testcases = json.load(fp)['testcases']
+            cfg = json.load(fp)
+            self.testcases = cfg['testcases']
+            self.testcase_ranks = cfg['testcase_ranks']
         self.test_idx = 0
         self.rank = 0
 
@@ -36,6 +38,7 @@ class DNSClient(TCPClientNode):
                     judge_res = False
         if judge_res:
             print(f'TESTCASE {self.test_idx} PASSED')
+            self.rank += self.testcase_ranks[self.test_idx]
         ret = False
         if self.test_idx == len(self.testcases) - 1:
             ret = True

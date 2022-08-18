@@ -39,14 +39,19 @@ class DNSPacket:  # 一个DNS Frame实例，用于解析和生成DNS帧
         self.qclass = (msg[idx + 2] << 8) + msg[idx + 3]
 
     def generate_response(self, ip: str, intercepted: bool) -> bytes:
+        '''
+        TODO: 根据IP地址构建DNS应答数据包，其中intercepted参数表示是否对该客户端请求的域名
+        进行拦截
+        1. 如果intercepted为True的话，
+        '''
         if not intercepted:
             res = bytearray(32 + self.name_length)
             res[0] = self.ID >> 8
             res[1] = self.ID % 256
             res[2] = 0x81
             res[3] = 0x80
-            res[4] = 0x0
-            res[5] = 0x1
+            res[4] = 0x00
+            res[5] = 0x01
             res[6] = 0x0
             res[7] = 0x1
             res[8] = 0x0
@@ -98,7 +103,6 @@ class DNSPacket:  # 一个DNS Frame实例，用于解析和生成DNS帧
     def generate_request(cls, url: str) -> bytes:
         import random
         id = random.randint(0, 65535)
-        # b'\xca\xd0\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x03www\x05baidu\x03com\x00\x00\x01\x00\x01'
         res = bytearray(12)
         res[0] = (id & 0xff)
         res[1] = (id >> 8)

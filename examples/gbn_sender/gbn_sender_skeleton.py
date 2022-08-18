@@ -5,10 +5,9 @@ from collections import deque
 from OpenNetLab.node import TCPClientNode
 from OpenNetLab.utils import Timer
 from gbn_packet import new_packet
-from gbn_logger import logger
 
 
-class GBNSender(TCPClientNode):
+class BaseGBNSender(TCPClientNode):
     async def setup(self):
         with open('./lab_config.json') as fp:
             cfg = json.load(fp)
@@ -21,13 +20,13 @@ class GBNSender(TCPClientNode):
             self.window_size = self.seqno_range - 1
             self.test_idx = 0
 
-    async def student_task(self, message):
+    async def send_message(self, message):
         pass
 
     async def testcase_handler(self) -> bool:
         assert self.test_idx < len(self.testcases)
         message = self.testcases[self.test_idx]
-        ret = await self.student_task(message)
+        ret = await self.send_message(message)
         ret = False
         if self.test_idx == len(self.testcases) - 1:
             ret = True
@@ -35,25 +34,27 @@ class GBNSender(TCPClientNode):
         return ret
 
 
-class StudentGBNSender(GBNSender):
+class GBNSender(BaseGBNSender):
     async def setup(self):
         await super().setup()
+        '''
+        TODO: 创建你自己所需要的数据结构
+        '''
 
-    async def teardown(self):
-        await super().teardown()
-
-    async def student_task(self, message):
+    async def send_message(self, message: str):
+        '''
+        TODO: message是一个字符串，将message中每个字符封装为帧以GBN协议发送给接收方。
+        '''
         pass
 
 
 async def main():
-    sender = StudentGBNSender()
+    sender = GBNSender()
     await sender.run()
 
 if __name__ == '__main__':
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main())
+        asyncio.run(main())
     except KeyboardInterrupt as _:
         print('keyboard interrupt accept, exit')
     except Exception as _:
