@@ -48,6 +48,11 @@ class TCPServerNode(abc.ABC):
         function.
         """
 
+    async def teardown(self):
+        """
+        This function is called when the running phase ends.
+        """
+
     async def evaulate_testcase(self):
         """Evalate the test case.
 
@@ -128,6 +133,7 @@ class TCPServerNode(abc.ABC):
                             print('ERROR: unrecgonized packet type: %d' % packet.packet_type)
                             break
         self._recorder.close()
+        await self.teardown()
 
     async def send(self, data, packet_type=PacketType.EXPIREMENT_DATA):
         """Send expirement data to client, the type of data can be any python

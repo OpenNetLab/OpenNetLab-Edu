@@ -21,7 +21,7 @@ class BaseGBNSender(TCPClientNode):
         self.seqno_range = 2**self.seqno_width
         self.window_size = self.seqno_range - 1
         self.test_idx = 0
-        self.enable_recording = False
+        self.enable_recording = True
 
     async def send_message(self, message):
         pass

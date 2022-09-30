@@ -56,13 +56,11 @@ class SRSender(BaseSRSender):
                 rel_idx = (acked_seq + self.seqno_range -
                            self.cur_seqno) % self.seqno_range
                 self.outbound[rel_idx][1] = True
-                logger.debug(
-                    '[ACK]: ackno %d received, Packets %s are acked' % (ackno, acked_seq))
+                # logger.debug('[ACK]: ackno %d received, Packets %s are acked' % (ackno, acked_seq))
                 await self.send_available(message)
             if len(self.outbound) == 0 and self.absno == len(message):
                 break
 
-        logger.debug('[TESTCASE %d FINISHED]' % self.test_idx)
 
     def is_valid_ackno(self, ackno):
         acked_seq = (ackno+self.seqno_range-1) % self.seqno_range
@@ -81,8 +79,7 @@ class SRSender(BaseSRSender):
             pkt = new_packet(self.absno, self.next_seqno,
                              0, message[self.absno])
             await self.send(pkt)
-            logger.info('[SEND]: Sending seqno %d on message %s' %
-                        (pkt['seqno'], pkt['message']))
+            # logger.info('[SEND]: Sending seqno %d on message %s' % (pkt['seqno'], pkt['message']))
             self.next_seqno = (self.next_seqno + 1) % self.seqno_range
             self.absno += 1
             self.outbound.append([pkt, False])
@@ -92,8 +89,7 @@ class SRSender(BaseSRSender):
             self.timers.append(timer)
 
     async def timeout_handler(self, pkt):
-        logger.error('[TIMEOUT]: Resending seqno %d on message %s' %
-                     (pkt['seqno'], pkt['message']))
+        # logger.error('[TIMEOUT]: Resending seqno %d on message %s' % (pkt['seqno'], pkt['message']))
         await self.send(pkt)
 
 

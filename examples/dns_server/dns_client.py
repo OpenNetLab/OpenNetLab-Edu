@@ -19,8 +19,10 @@ class DNSClient(TCPClientNode):
             cfg = json.load(fp)
             self.testcases = cfg['testcases']
             self.testcase_ranks = cfg['testcase_ranks']
+        self.grade = 0
+        self.success_test = []
+        self.failed_test = []
         self.test_idx = 0
-        self.rank = 0
 
     async def testcase_handler(self):
         assert self.test_idx < len(self.testcases)
@@ -37,13 +39,27 @@ class DNSClient(TCPClientNode):
                 if obj['ip'] != ip and obj['ip'] != 'any':
                     judge_res = False
         if judge_res:
-            print(f'TESTCASE {self.test_idx} PASSED')
-            self.rank += self.testcase_ranks[self.test_idx]
+            # print(f'TESTCASE {self.test_idx} PASSED')
+            self.success_test.append(self.test_idx)
+            self.grade += self.testcase_ranks[self.test_idx]
+        else:
+            self.failed_test.append(self.test_idx)
         ret = False
         if self.test_idx == len(self.testcases) - 1:
             ret = True
         self.test_idx += 1
         return ret
+
+    async def teardown(self):
+        print('[TEST CASES]: %d/%d PASSED' %
+              (len(self.success_test), len(self.testcases)))
+        if len(self.failed_test) == 0:
+            print('ACCEPT')
+        else:
+            print('PARTIALLY_ACCEPTED')
+        print('PASSED TESTS: %s' % self.success_test)
+        print('FAILED TESTS: %s' % self.failed_test)
+        print('GRADE: %d' % self.grade)
 
 
 async def main():

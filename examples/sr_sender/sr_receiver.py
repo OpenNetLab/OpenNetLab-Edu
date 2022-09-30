@@ -21,8 +21,10 @@ class SRReceiver(TCPServerNode):
             self.recv_window = [None for _ in range(self.window_size)]
             self.recv_start = 0
             # test
+            self.grade = 0
             self.test_idx = 0
             self.testcases = cfg['testcases']
+            self.testcase_ranks = cfg['testcase_ranks']
             self.failed_test = []
             self.success_test = []
             self.verbose = False
@@ -64,15 +66,25 @@ class SRReceiver(TCPServerNode):
         # print(self.message)
         if expected_msg == self.message:
             self.success_test.append(self.test_idx)
-            print('TESTCASE %d PASSED' % self.test_idx)
+            self.grade += self.testcase_ranks[self.test_idx]
         else:
             self.failed_test.append(self.test_idx)
-            print('TESTCASE %d FAILED' % self.test_idx)
         self.test_idx += 1
         self.message = ''
         self.next_seqno = 0
         self.recv_window = [None for _ in range(self.window_size)]
         self.recv_start = 0
+
+    async def teardown(self):
+        print('[TEST CASES]: %d/%d PASSED' %
+              (len(self.success_test), len(self.testcases)))
+        if len(self.failed_test) == 0:
+            print('ACCEPT')
+        else:
+            print('PARTIALLY_ACCEPTED')
+        print('PASSED TESTS: %s' % self.success_test)
+        print('FAILED TESTS: %s' % self.failed_test)
+        print('GRADE: %d' % self.grade)
 
     async def log(self, act, data):
         if not self.verbose:

@@ -69,6 +69,9 @@ class TCPClientNode(abc.ABC):
         using OpenNetLab.
         """
 
+    async def teardown(self):
+        pass
+
     async def evaluate_testcase(self):
         pass
 
@@ -108,6 +111,7 @@ class TCPClientNode(abc.ABC):
                 # assert packet.packet_type == PacketType.START_TESTCASE
             print('TESTING FINISHED')
             await self.finish()
+            await self.teardown()
 
     async def send(self, data):
         """Send expirement data to server, the type of data can be any python
@@ -215,7 +219,7 @@ class TCPClientNode(abc.ABC):
                     i, self.server_host, self.server_port))
                 await asyncio.sleep(2)
         if not ret:
-            print('ERROR: Fail to connect to server')
+            print('NETWORK_TIMEOUT')
         return ret
 
     async def _end_testcase(self):

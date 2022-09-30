@@ -1,6 +1,5 @@
 import asyncio
 import json
-from datetime import datetime
 
 from OpenNetLab.node import TCPServerNode
 from gbn_packet import new_packet
@@ -15,6 +14,8 @@ class GBNReceiver(TCPServerNode):
             self.loss_rate = float(cfg['loss_rate'])
             self.max_delay = int(cfg['max_delay'])
             self.testcases = cfg['testcases']
+            self.testcases_ranks = cfg['testcase_ranks']
+        self.grade = 0
         self.next_msg_idx = 0
         self.test_idx = 0
         self.seqno_range = 2**self.seq_no_width
@@ -47,10 +48,9 @@ class GBNReceiver(TCPServerNode):
         # print(self.message)
         if expected_msg == self.message:
             self.success_test.append(self.test_idx)
-            print('TESTCASE %d PASSED' % self.test_idx)
+            self.grade += self.testcases_ranks[self.test_idx]
         else:
             self.failed_test.append(self.test_idx)
-            print('TESTCASE %d FAILED' % self.test_idx)
         self.test_idx += 1
         self.message = ''
         self.next_seqno = 0
@@ -58,8 +58,13 @@ class GBNReceiver(TCPServerNode):
     async def teardown(self):
         print('[TEST CASES]: %d/%d PASSED' %
               (len(self.success_test), len(self.testcases)))
+        if len(self.failed_test) == 0:
+            print('ACCEPT')
+        else:
+            print('PARTIALLY_ACCEPTED')
         print('PASSED TESTS: %s' % self.success_test)
         print('FAILED TESTS: %s' % self.failed_test)
+        print('GRADE: %d' % self.grade)
 
     async def log(self, act, data):
         if not self.verbose:
