@@ -3,10 +3,13 @@ import socket
 import struct
 import os
 import abc
+import logging
 
 from ..protocol.packet import *
 from .common import _parse_args
 from ._recorder import Recorder
+
+logging.getLogger('asyncio').setLevel(logging.WARNING)
 
 
 class TCPServerNode(abc.ABC):

@@ -5,10 +5,13 @@ import struct
 import abc
 import os
 import time
+import logging
 
 from ..protocol.packet import *
 from .common import _parse_args
 from ._recorder import Recorder
+
+logging.getLogger('asyncio').setLevel(logging.WARNING)
 
 class TCPClientNode(abc.ABC):
     def __init__(self):
