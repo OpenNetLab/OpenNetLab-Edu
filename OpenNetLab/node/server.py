@@ -132,8 +132,8 @@ class TCPServerNode(abc.ABC):
                         else:
                             print('ERROR: unrecgonized packet type: %d' % packet.packet_type)
                             break
+            await self.teardown()
         self._recorder.close()
-        await self.teardown()
 
     async def send(self, data, packet_type=PacketType.EXPIREMENT_DATA):
         """Send expirement data to client, the type of data can be any python
