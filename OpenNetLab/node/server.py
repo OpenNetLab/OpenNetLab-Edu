@@ -163,7 +163,7 @@ class TCPServerNode(abc.ABC):
                 else:
                     conn.close()
         except socket.timeout as _:
-            print('ERROR: socket times out before receiving any viable connection')
+            print('NETWORK_TIMEOUT')
             return False
         else:
             return True
