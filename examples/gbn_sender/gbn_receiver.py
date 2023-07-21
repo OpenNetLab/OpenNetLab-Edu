@@ -24,7 +24,7 @@ class GBNReceiver(TCPServerNode):
         self.message = ''
         self.failed_test = []
         self.success_test = []
-        self.verbose = False
+        self.verbose = True
         self.evaulate_here = True
 
     async def recv_callback(self, data):

@@ -27,7 +27,7 @@ class SRReceiver(TCPServerNode):
             self.testcase_ranks = cfg['testcase_ranks']
             self.failed_test = []
             self.success_test = []
-            self.verbose = False
+            self.verbose = True
             self.evaulate_here = True
 
     def is_valid_seqno(self, seqno):
