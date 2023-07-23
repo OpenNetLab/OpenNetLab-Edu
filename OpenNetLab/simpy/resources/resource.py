@@ -28,17 +28,18 @@ class Preempted:
 
 
 class Request(Put):
-    """Request usage of the *resource*. The event is triggered once access is
-    granted. Subclass of :class:`simpy.resources.base.Put`.
+    """Request usage of the resource. The event is triggered once access is
+    granted.
 
     If the maximum capacity of users has not yet been reached, the request is
-    triggered immediately. If the maximum capacity has been
-    reached, the request is triggered once an earlier usage request on the
-    resource is released.
+    triggered immediately. If the maximum capacity has been reached, the
+    request is triggered once an earlier usage request on the resource is
+    released.
 
-    The request is automatically released when the request was created within
-    a :keyword:`with` statement.
-
+    usage:
+        req = resource.reqeust()
+        yield req
+        req.release()
     """
 
     resource: 'Resource'
@@ -61,8 +62,8 @@ class Request(Put):
 
 
 class Release(Get):
-    """Releases the usage of *resource* granted by *request*. This event is
-    triggered immediately. Subclass of :class:`simpy.resources.base.Get`.
+    """Releases the usage of *resource* granted by request. This event is
+    triggered immediately.
 
     """
 
@@ -70,6 +71,59 @@ class Release(Get):
         self.request = request
         """The request (:class:`Request`) that is to be released."""
         super().__init__(resource)
+
+
+class Resource(BaseResource):
+    """Resource with capacity of usage slots that can be requested by
+    processes.
+
+    If all slots are taken, requests are enqueued. Once a usage request is
+    released, a pending request will be triggered.
+    """
+
+    def __init__(self, env: Environment, capacity: int = 1):
+        if capacity <= 0:
+            raise ValueError('"capacity" must be > 0.')
+
+        super().__init__(env, capacity)
+
+        self.users: List[Request] = []
+        """List of Request events for the processes that are currently using
+        the resource."""
+        self.queue = self.put_queue
+        """Queue of pending Request events. """
+
+    @property
+    def count(self) -> int:
+        """Number of users currently using the resource."""
+        return len(self.users)
+
+    if TYPE_CHECKING:
+
+        def request(self) -> Request:
+            """Request a usage slot."""
+            return Request(self)
+
+        def release(self, request: Request) -> Release:
+            """Release a usage slot."""
+            return Release(self, request)
+
+    else:
+        request = BoundClass(Request)
+        release = BoundClass(Release)
+
+    def _do_put(self, event: Request) -> None:
+        if len(self.users) < self.capacity:
+            self.users.append(event)
+            event.usage_since = self._env.now
+            event.succeed()
+
+    def _do_get(self, event: Release) -> None:
+        try:
+            self.users.remove(event.request)  # type: ignore
+        except ValueError:
+            pass
+        event.succeed()
 
 
 class PriorityRequest(Request):
@@ -108,86 +162,18 @@ class PriorityRequest(Request):
 
 
 class SortedQueue(list):
-    """Queue for sorting events by their :attr:`~PriorityRequest.key`
-    attribute.
-
-    """
+    """Queue for sorting events by their key attributes."""
 
     def __init__(self, maxlen: Optional[int] = None):
         super().__init__()
         self.maxlen = maxlen
-        """Maximum length of the queue."""
 
     def append(self, item: Any) -> None:
-        """Sort *item* into the queue.
-
-        Raise a :exc:`RuntimeError` if the queue is full.
-
-        """
         if self.maxlen is not None and len(self) >= self.maxlen:
             raise RuntimeError('Cannot append event. Queue is full.')
 
         super().append(item)
         super().sort(key=lambda e: e.key)
-
-
-class Resource(BaseResource):
-    """Resource with *capacity* of usage slots that can be requested by
-    processes.
-
-    If all slots are taken, requests are enqueued. Once a usage request is
-    released, a pending request will be triggered.
-
-    The *env* parameter is the :class:`~simpy.core.Environment` instance the
-    resource is bound to.
-
-    """
-
-    def __init__(self, env: Environment, capacity: int = 1):
-        if capacity <= 0:
-            raise ValueError('"capacity" must be > 0.')
-
-        super().__init__(env, capacity)
-
-        self.users: List[Request] = []
-        """List of :class:`Request` events for the processes that are currently
-        using the resource."""
-        self.queue = self.put_queue
-        """Queue of pending :class:`Request` events. Alias of
-        :attr:`~simpy.resources.base.BaseResource.put_queue`.
-        """
-
-    @property
-    def count(self) -> int:
-        """Number of users currently using the resource."""
-        return len(self.users)
-
-    if TYPE_CHECKING:
-
-        def request(self) -> Request:
-            """Request a usage slot."""
-            return Request(self)
-
-        def release(self, request: Request) -> Release:
-            """Release a usage slot."""
-            return Release(self, request)
-
-    else:
-        request = BoundClass(Request)
-        release = BoundClass(Release)
-
-    def _do_put(self, event: Request) -> None:
-        if len(self.users) < self.capacity:
-            self.users.append(event)
-            event.usage_since = self._env.now
-            event.succeed()
-
-    def _do_get(self, event: Release) -> None:
-        try:
-            self.users.remove(event.request)  # type: ignore
-        except ValueError:
-            pass
-        event.succeed()
 
 
 class PriorityResource(Resource):
@@ -200,12 +186,8 @@ class PriorityResource(Resource):
     """
 
     PutQueue = SortedQueue
-    """Type of the put queue. See
-    :attr:`~simpy.resources.base.BaseResource.put_queue` for details."""
-
     GetQueue = list
-    """Type of the get queue. See
-    :attr:`~simpy.resources.base.BaseResource.get_queue` for details."""
+
 
     def __init__(self, env: Environment, capacity: int = 1):
         super().__init__(env, capacity)
@@ -218,7 +200,7 @@ class PriorityResource(Resource):
             """Request a usage slot with the given *priority*."""
             return PriorityRequest(self, priority, preempt)
 
-        def release(  # type: ignore[override] # noqa: F821
+        def release(
             self, request: PriorityRequest
         ) -> Release:
             """Release a usage slot."""
@@ -227,7 +209,6 @@ class PriorityResource(Resource):
     else:
         request = BoundClass(PriorityRequest)
         release = BoundClass(Release)
-
 
 class PreemptiveResource(PriorityResource):
     """A :class:`~simpy.resources.resource.PriorityResource` with preemption.

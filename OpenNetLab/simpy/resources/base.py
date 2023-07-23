@@ -7,7 +7,6 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    List,
 )
 
 from ..core import BoundClass, Environment
@@ -19,16 +18,8 @@ ResourceType = TypeVar('ResourceType', bound='BaseResource')
 class Put(Event, ContextManager['Put'], Generic[ResourceType]):
     """Generic event for requesting to put something into the *resource*.
 
-    This event (and all of its subclasses) can act as context manager and can
-    be used with the :keyword:`with` statement to automatically cancel the
-    request if an exception (like an :class:`simpy.exceptions.Interrupt` for
-    example) occurs:
-
-    .. code-block:: python
-
-        with res.put(item) as request:
-            yield request
-
+    This event can act as context manager and can be used with the with
+    statement to automatically cancel the request if an exception  occurs:
     """
 
     def __init__(self, resource: ResourceType):
@@ -55,11 +46,7 @@ class Put(Event, ContextManager['Put'], Generic[ResourceType]):
         """Cancel this put request.
 
         This method has to be called if the put request must be aborted, for
-        example if a process needs to handle an exception like an
-        :class:`~simpy.exceptions.Interrupt`.
-
-        If the put request was created in a :keyword:`with` statement, this
-        method is called automatically.
+        example if a process needs to handle an exception like an Interrupt.
 
         """
         if not self.triggered:
@@ -122,11 +109,14 @@ GetType = TypeVar('GetType', bound=Get)
 
 
 class BaseResource(Generic[PutType, GetType]):
+    PutQueue = list
+    GetQueue = list
+
     def __init__(self, env: Environment, capacity: Union[float, int]):
         self._env = env
         self._capacity = capacity
-        self.put_queue: List[PutType] = list()
-        self.get_queue: List[GetType] = list()
+        self.put_queue = self.PutQueue()
+        self.get_queue = self.GetQueue()
         BoundClass.bind_early(self)
 
     @property

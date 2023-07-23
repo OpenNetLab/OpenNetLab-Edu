@@ -34,29 +34,27 @@ class Event:
 
     An event
 
-    - may happen (:attr:`triggered` is ``False``),
-    - is going to happen (:attr:`triggered` is ``True``) or
-    - has happened (:attr:`processed` is ``True``).
+    - may happen (triggered is False),
+    - is going to happen (triggered is True) or
+    - has happened (processed is True).
 
-    Every event is bound to an environment *env* and is initially not
-    triggered. Events are scheduled for processing by the environment after
-    they are triggered by either :meth:`succeed`, :meth:`fail` or
-    :meth:`trigger`. These methods also set the *ok* flag and the *value* of
-    the event.
+    Every event is bound to an environment and is initially not triggered.
+    Events are scheduled for processing by the environment after they are
+    triggered by either succeed, fail or trigger function. These methods also
+    set the ok flag and the value of the event.
 
-    An event has a list of :attr:`callbacks`. A callback can be any callable.
-    Once an event gets processed, all callbacks will be invoked with the event
-    as the single argument. Callbacks can check if the event was successful by
-    examining *ok* and do further processing with the *value* it has produced.
+    An event has a list of callbacks. A callback can be any callable. Once an
+    event gets processed, all callbacks will be invoked with the event as the
+    single argument. Callbacks can check if the event was successful by
+    examining ok and do further processing with the value it has produced.
 
     Failed events are never silently ignored and will raise an exception upon
     being processed. If a callback handles an exception, it must set
     :attr:`defused` to ``True`` to prevent this.
 
-    This class also implements ``__and__()`` (``&``) and ``__or__()`` (``|``).
-    If you concatenate two events using one of these operators,
-    a :class:`Condition` event is generated that lets you wait for both or one
-    of them.
+    This class also implements __and__(), __or__() function. If you concatenate
+    two events using one of these operators, a Condition event is generated
+    that lets you wait for both or one of them.
 
     """
 
@@ -66,55 +64,38 @@ class Event:
 
     def __init__(self, env: 'Environment'):
         self.env = env
-        """The :class:`~simpy.core.Environment` the event lives in."""
         self.callbacks: EventCallbacks = []
-        """List of functions that are called when the event is processed."""
 
     def __repr__(self) -> str:
-        """Return the description of the event (see :meth:`_desc`) with the id
-        of the event."""
         return f'<{self._desc()} object at {id(self):#x}>'
 
     def _desc(self) -> str:
-        """Return a string *Event()*."""
         return f'{self.__class__.__name__}()'
 
     @property
     def triggered(self) -> bool:
-        """Becomes ``True`` if the event has been triggered and its callbacks
-        are about to be invoked."""
         return self._value is not PENDING
 
     @property
     def processed(self) -> bool:
-        """Becomes ``True`` if the event has been processed (e.g., its
-        callbacks have been invoked)."""
         return self.callbacks is None
 
     @property
     def ok(self) -> bool:
-        """Becomes ``True`` when the event has been triggered successfully.
+        """Becomes True when the event has been triggered successfully.
 
-        A "successful" event is one triggered with :meth:`succeed()`.
-
-        :raises AttributeError: if accessed before the event is triggered.
+        A "successful" event is one triggered with succeed()
 
         """
         return self._ok
 
     @property
     def defused(self) -> bool:
-        """Becomes ``True`` when the failed event's exception is "defused".
+        """Becomes True when the failed event's exception is "defused".
 
-        When an event fails (i.e. with :meth:`fail()`), the failed event's
-        `value` is an exception that will be re-raised when the
-        :class:`~simpy.core.Environment` processes the event (i.e. in
-        :meth:`~simpy.core.Environment.step()`).
-
-        It is also possible for the failed event's exception to be defused by
-        setting :attr:`defused` to ``True`` from an event callback. Doing so
-        prevents the event's exception from being re-raised when the event is
-        processed by the :class:`~simpy.core.Environment`.
+        When an event fails with fail(). The failed event's value is an
+        exception. If defused is not True, the environment will re-raise
+        it. Else, the exception will not be raised by environment.
 
         """
         return hasattr(self, '_defused')
@@ -125,36 +106,17 @@ class Event:
 
     @property
     def value(self) -> Optional[Any]:
-        """The value of the event if it is available.
-
-        The value is available when the event has been triggered.
-
-        Raises :exc:`AttributeError` if the value is not yet available.
-
-        """
         if self._value is PENDING:
             raise AttributeError(f'Value of {self} is not yet available')
         return self._value
 
     def trigger(self, event: 'Event') -> None:
-        """Trigger the event with the state and value of the provided *event*.
-        Return *self* (this event instance).
-
-        This method can be used directly as a callback function to trigger
-        chain reactions.
-
-        """
         self._ok = event._ok
         self._value = event._value
         self.env.schedule(self)
 
     def succeed(self, value: Optional[Any] = None) -> 'Event':
-        """Set the event's value, mark it as successful and schedule it for
-        processing by the environment. Returns the event instance.
-
-        Raises :exc:`RuntimeError` if this event has already been triggerd.
-
-        """
+        # schedule the event in environment
         if self._value is not PENDING:
             raise RuntimeError(f'{self} has already been triggered')
 
@@ -164,14 +126,6 @@ class Event:
         return self
 
     def fail(self, exception: Exception) -> 'Event':
-        """Set *exception* as the events value, mark it as failed and schedule
-        it for processing by the environment. Returns the event instance.
-
-        Raises :exc:`ValueError` if *exception* is not an :exc:`Exception`.
-
-        Raises :exc:`RuntimeError` if this event has already been triggered.
-
-        """
         if self._value is not PENDING:
             raise RuntimeError(f'{self} has already been triggered')
         if not isinstance(exception, BaseException):
@@ -182,14 +136,9 @@ class Event:
         return self
 
     def __and__(self, other: 'Event') -> 'Condition':
-        """Return a :class:`~simpy.events.Condition` that will be triggered if
-        both, this event and *other*, have been processed."""
         return Condition(self.env, Condition.all_events, [self, other])
 
     def __or__(self, other: 'Event') -> 'Condition':
-        """Return a :class:`~simpy.events.Condition` that will be triggered if
-        either this event or *other* have been processed (or even both, if they
-        happened concurrently)."""
         return Condition(self.env, Condition.any_events, [self, other])
 
 
@@ -198,14 +147,12 @@ EventCallbacks = List[EventCallback]
 
 
 class Timeout(Event):
-    """A :class:`~simpy.events.Event` that gets triggered after a *delay* has
-    passed.
+    """
+    A Event that gets triggered after a delay has passed
 
     This event is automatically triggered when it is created.
 
-
     """
-
     def __init__(
         self,
         env: 'Environment',
@@ -214,10 +161,8 @@ class Timeout(Event):
     ):
         if delay < 0:
             raise ValueError(f'Negative delay {delay}')
-        # NOTE: The following initialization code is inlined from
-        # Event.__init__() for performance reasons.
-        self.env = env
-        self.callbacks: EventCallbacks = []
+        # Timeout event has no callback
+        super().__init__(env)
         self._value = value
         self._delay = delay
         self._ok = True
@@ -230,7 +175,7 @@ class Timeout(Event):
 
 
 class Initialize(Event):
-    """Initializes a process. Only used internally by :class:`Process`.
+    """Initializes a process. Only used internally by Process.
 
     This event is automatically triggered when it is created.
 
@@ -267,7 +212,7 @@ class Interruption(Event):
         self._ok = False
         self._defused = True
 
-        if process._value is not PENDING:
+        if process.triggered:
             raise RuntimeError(
                 f'{process} has terminated and cannot be interrupted.'
             )
@@ -282,7 +227,7 @@ class Interruption(Event):
         # Ignore dead processes. Multiple concurrently scheduled interrupts
         # cause this situation. If the process dies while handling the first
         # one, the remaining interrupts must be ignored.
-        if self.process._value is not PENDING:
+        if self.process.triggered:
             return
 
         # A process never expects an interrupt and is always waiting for a
@@ -299,15 +244,15 @@ class Process(Event):
     """Process an event yielding generator.
 
     A generator (also known as a coroutine) can suspend its execution by
-    yielding an event. ``Process`` will take care of resuming the generator
-    with the value of that event once it has happened. The exception of failed
+    yielding an event. Process will take care of resuming the generator with
+    the value of that event once it has happened. The exception of failed
     events is thrown into the generator.
 
-    ``Process`` itself is an event, too. It is triggered, once the generator
+    Process itself is an event, too. It is triggered, once the generator
     returns or raises an exception. The value of the process is the return
     value of the generator or the exception, respectively.
 
-    Processes can be interrupted during their execution by :meth:`interrupt`.
+    Processes can be interrupted during their execution by interrupt()
 
     """
 
@@ -362,8 +307,8 @@ class Process(Event):
         """
         Interruption(self, cause)
 
-    def _resume(self, event: Event) -> None:  # noqa: C901
-        """Resumes the execution of the process with the value of *event*. If
+    def _resume(self, event: Event) -> None:
+        """Resumes the execution of the process with the value of event. If
         the process generator exits, the process itself will get triggered with
         the return value or the exception of the generator."""
         # Mark the current process as active.

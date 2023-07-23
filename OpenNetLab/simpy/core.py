@@ -35,10 +35,6 @@ T = TypeVar('T')
 class BoundClass(Generic[T]):
     """Allows classes to behave like methods.
 
-    The ``__get__()`` descriptor is basically identical to
-    ``function.__get__()`` and binds the first argument of the ``cls`` to the
-    descriptor instance.
-
     """
 
     def __init__(self, cls: Type[T]):
@@ -55,8 +51,9 @@ class BoundClass(Generic[T]):
 
     @staticmethod
     def bind_early(instance: object) -> None:
-        """Bind all :class:`BoundClass` attributes of the *instance's* class
-        to the instance itself to increase performance."""
+        """Bind all BoundClass attributess of instance to the instance itself
+        to increaes performance.
+        """
         for name, obj in instance.__class__.__dict__.items():
             if type(obj) is BoundClass:
                 bound_class = getattr(instance, name)
@@ -169,8 +166,11 @@ class Environment:
                  (self._now + delay, priority, next(self._eid), event))
 
     def peek(self) -> SimTime:
-        """Get the time of the next scheduled event. Return
-        :data:`~simpy.core.Infinity` if there is no further event."""
+        """Get the time of the next scheduled event.
+
+        Return Infinity if there is no further event.
+
+        """
         try:
             return self._queue[0][0]
         except IndexError:
@@ -179,7 +179,7 @@ class Environment:
     def step(self) -> None:
         """Process the next event.
 
-        Raise an :exc:`EmptySchedule` if no further events are available.
+        Raise an EmptySchedule if no further events are available.
 
         """
         try:
