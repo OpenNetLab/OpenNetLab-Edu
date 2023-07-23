@@ -150,15 +150,13 @@ class BaseResource(Generic[PutType, GetType]):
         """This method is called once a new put event has been created or a get
         event has been processed.
 
-        The method iterates over all put events in the :attr:`put_queue` and
-        calls :meth:`_do_put` to check if the conditions for the event are met.
-        If :meth:`_do_put` returns ``False``, the iteration is stopped early.
+        The method iterates over all put events in the put_queue and calls
+        _do_put to check if the conditions for the event are met. If _do_put
+        returns False, the iteration is stopped early.
+
         """
 
         # Maintain queue invariant: All put requests must be untriggered.
-        # This code is not very pythonic because the queue interface should be
-        # simple (only append(), pop(), __getitem__() and __len__() are
-        # required).
         idx = 0
         while idx < len(self.put_queue):
             put_event = self.put_queue[idx]
@@ -196,9 +194,6 @@ class BaseResource(Generic[PutType, GetType]):
         """
 
         # Maintain queue invariant: All get requests must be untriggered.
-        # This code is not very pythonic because the queue interface should be
-        # simple (only append(), pop(), __getitem__() and __len__() are
-        # required).
         idx = 0
         while idx < len(self.get_queue):
             get_event = self.get_queue[idx]

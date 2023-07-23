@@ -209,3 +209,40 @@ def test_sorted_queue_maxlen(env):
 
     env.process(process(env, resource))
     env.run()
+
+
+def test_get_users(env):
+    def process(env, resource):
+        with resource.request() as req:
+            yield req
+            yield env.timeout(1)
+
+    resource = simpy.Resource(env, 1)
+    procs = [env.process(process(env, resource)) for i in range(3)]
+    env.run(until=1)
+    assert [evt.proc for evt in resource.users] == procs[0:1]
+    assert [evt.proc for evt in resource.queue] == procs[1:]
+
+    env.run(until=2)
+    assert [evt.proc for evt in resource.users] == procs[1:2]
+    assert [evt.proc for evt in resource.queue] == procs[2:]
+
+
+def test_preemptive_resource(env):
+    def proc_a(env, resource, prio):
+        try:
+            with resource.request(priority=prio) as req:
+                yield req
+                pytest.fail('Should have received an preemption interrupt')
+        except simpy.Interrupt:
+            pass
+
+    def proc_b(env, resource, prio):
+        with resource.request(priority=prio) as req:
+            yield req
+
+    resource = simpy.PreemptiveResource(env, 1)
+    env.process(proc_a(env, resource, 1))
+    env.process(proc_b(env, resource, 0))
+
+    env.run()
