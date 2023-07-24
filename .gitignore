@@ -5,3 +5,4 @@ judge
 results
 build
 venv
+tests/main.py

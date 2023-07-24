@@ -99,18 +99,21 @@ class Resource(BaseResource):
         request = BoundClass(Request)
         release = BoundClass(Release)
 
-    def _do_put(self, event: Request) -> None:
+    def _do_put(self, event: Request) -> bool:
         if len(self._users) < self.capacity:
             self._users.append(event)
             event.usage_since = self._env.now
             event.succeed()
+            return True
+        return False
 
-    def _do_get(self, event: Release) -> None:
+    def _do_get(self, event: Release) -> bool:
         try:
             self._users.remove(event.request)  # type: ignore
         except ValueError:
             pass
         event.succeed()
+        return True
 
 
 class PriorityRequest(Request):
@@ -224,7 +227,7 @@ class PreemptiveResource(PriorityResource):
 
     users: List[PriorityRequest]  # type: ignore
 
-    def _do_put(self, event: PriorityRequest) -> None:
+    def _do_put(self, event: PriorityRequest) -> bool:
         if len(self.users) >= self.capacity and event.preempt:
             # Check if we can preempt another process
             preempt = sorted(self.users, key=lambda e: e.key)[-1]

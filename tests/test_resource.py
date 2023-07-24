@@ -26,8 +26,8 @@ def test_resource(env, log):
 
 def test_resource_context_manager(env, log):
     def pem(env, name, resource, log):
-        with resource.request() as request:
-            yield request
+        with resource.request() as req:
+            yield req
             yield env.timeout(1)
 
         log.append((name, env.now))
@@ -187,7 +187,6 @@ def test_resource_with_priority_queue(env):
     env.run()
 
 
-
 def test_sorted_queue_maxlen(env):
     """Requests must fail if more than *maxlen* requests happen
     concurrently."""
@@ -228,6 +227,10 @@ def test_get_users(env):
     assert [evt.proc for evt in resource.queue] == procs[2:]
 
 
+#######################################################################
+#                    Tests for PreemptiveResource                     #
+#######################################################################
+
 def test_preemptive_resource(env):
     def proc_a(env, resource, prio):
         try:
@@ -246,3 +249,120 @@ def test_preemptive_resource(env):
     env.process(proc_b(env, resource, 0))
 
     env.run()
+
+
+def test_preemptive_resource_timeout_0(env):
+    def proc_a(env, resource, prio):
+        with resource.request(priority=prio) as req:
+            try:
+                yield req
+                yield env.timeout(1)
+                pytest.fail('Should have received an interrupt/preemption.')
+            except simpy.Interrupt:
+                pass
+        yield env.event()
+        pytest.fail('Should never get here')
+
+    def proc_b(env, resource, prio):
+        with resource.request(priority=prio) as req:
+            yield req
+            assert env.now == 0
+
+    resource = simpy.PreemptiveResource(env, 1)
+    env.process(proc_a(env, resource, 1))
+    env.process(proc_b(env, resource, 0))
+    env.run()
+
+
+def test_mixed_preemption(env, log):
+    def p(env, res, id, delay, prio, preempt, log):
+        yield env.timeout(delay)
+        with res.request(priority=prio, preempt=preempt) as req:
+            try:
+                yield req
+                yield env.timeout(2)
+                log.append((env.now, id))
+            except simpy.Interrupt as ir:
+                log.append((env.now, id, (ir.cause.by, ir.cause.usage_since)))
+
+    res = simpy.PreemptiveResource(env, capacity=1)
+    p0 = env.process(p(env, res, id=0, delay=0, prio=2, preempt=True, log=log))
+    p1 = env.process(p(env, res, id=1, delay=0, prio=2, preempt=True, log=log))
+    p2 = env.process(
+        p(env, res, id=2, delay=1, prio=1, preempt=False, log=log))
+    p3 = env.process(p(env, res, id=3, delay=3, prio=0, preempt=True, log=log))
+    p4 = env.process(p(env, res, id=4, delay=4, prio=3, preempt=True, log=log))
+    # users: p0  put_queue: p2, p1
+    # users: p2  put_queue: p1
+    # p3 come, p2 is interrupted
+    # users: p3  put_queue: p2, p0
+
+    # At time 3, event queue: p3.Timeout -- p2.Request
+
+    env.run()
+
+    assert log == [
+        (2, 0),  # p0
+        (3, 2, (p3, 2)),  # p2 interrupted by
+        (5, 3),
+        (7, 1),
+        (9, 4)
+    ]
+
+
+def test_nested_preemption(env, log):
+    def process(env, res, id, delay, prio, preempt, log):
+        yield env.timeout(delay)
+        with res.request(priority=prio, preempt=preempt) as req:
+            try:
+                yield req
+                yield env.timeout(5)
+                log.append((env.now, id))
+            except simpy.Interrupt as ir:
+                log.append((env.now, id, (ir.cause.by, ir.cause.usage_since)))
+
+    def process2(env, res0, res1, id, delay, prio, preempt, log):
+        yield env.timeout(delay)
+        with res0.request(priority=prio, preempt=preempt) as req0:
+            try:
+                yield req0
+                with res1.request(priority=prio, preempt=preempt) as req1:
+                    try:
+                        yield req1
+                        yield env.timeout(5)
+                        log.append((env.now, id))
+                    except simpy.Interrupt as ir:
+                        log.append((env.now, id, (ir.cause.by,
+                                                  ir.cause.usage_since,
+                                                  ir.cause.resource)))
+            except simpy.Interrupt as ir:
+                log.append((env.now, id, (ir.cause.by, ir.cause.usage_since,
+                                          ir.cause.resource)))
+
+    res0 = simpy.PreemptiveResource(env, 1)
+    res1 = simpy.PreemptiveResource(env, 1)
+
+    # interrupted by p1
+    p0 = env.process(process2(env, res0, res1, id=0, delay=0,
+                     prio=-1, preempt=True, log=log))
+    # normal
+    p1 = env.process(process(env, res1,        id=1, delay=1,
+                     prio=-2, preempt=True, log=log))
+    # interrupted by p3
+    p2 = env.process(process2(env, res0, res1, id=2, delay=20,
+                     prio=-1, preempt=True, log=log))
+    # normal
+    p3 = env.process(process(env, res0,        id=3, delay=21,
+                     prio=-2, preempt=True, log=log))
+    # wait until p3.res1.req finish
+    p4 = env.process(process2(env, res0, res1, id=4, delay=21,
+                     prio=-1, preempt=True, log=log))
+    env.run()
+
+    assert log == [
+        (1, 0, (p1, 0, res1)),
+        (6, 1),
+        (21, 2, (p3, 20, res0)),
+        (26, 3),
+        (31, 4)
+    ]

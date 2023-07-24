@@ -153,6 +153,7 @@ class Timeout(Event):
     This event is automatically triggered when it is created.
 
     """
+
     def __init__(
         self,
         env: 'Environment',
@@ -237,6 +238,7 @@ class Interruption(Event):
         self.process._resume(self)
 
 
+# yield Event, send Any, return Any
 ProcessGenerator = Generator[Event, Any, Any]
 
 
@@ -318,6 +320,7 @@ class Process(Event):
             # Get next event from process
             try:
                 if event._ok:
+                    # get the next event yiled in generator
                     event = self._generator.send(event._value)
                 else:
                     # The process has no choice but to handle the failed event
@@ -348,12 +351,15 @@ class Process(Event):
                 self.env.schedule(self)
                 break
 
+            # Call send function will return the next yield event. The event
+            # just yield should not be triggered. So event.callbacks should 
+            # be a list. Here we append _resume to the end of callbacks. So
+            # the generator could be resumed.
+
             # Process returned another event to wait upon.
             try:
                 # Be optimistic and blindly access the callbacks attribute.
                 if event.callbacks is not None:
-                    # The event has not yet been triggered. Register callback
-                    # to resume the process if that happens.
                     event.callbacks.append(self._resume)
                     break
             except AttributeError:

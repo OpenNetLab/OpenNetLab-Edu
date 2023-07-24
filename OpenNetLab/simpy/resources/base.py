@@ -14,6 +14,10 @@ from ..events import Event, Process
 
 ResourceType = TypeVar('ResourceType', bound='BaseResource')
 
+"""
+def pem(env, resource):)
+"""
+
 
 class Put(Event, ContextManager['Put'], Generic[ResourceType]):
     """Generic event for requesting to put something into the *resource*.
@@ -27,7 +31,7 @@ class Put(Event, ContextManager['Put'], Generic[ResourceType]):
         self.resource = resource
         self.proc: Optional[Process] = self.env.active_process
         resource.put_queue.append(self)
-        self.callbacks.append(resource._trigger_get)
+        # self.callbacks.append(resource._trigger_get)
         resource._trigger_put(None)
 
     def __enter__(self) -> 'Put':
@@ -116,7 +120,9 @@ class BaseResource(Generic[PutType, GetType]):
         self._env = env
         self._capacity = capacity
         self.put_queue = self.PutQueue()
+        """Queue of pending put requests"""
         self.get_queue = self.GetQueue()
+        """Queue of pending get requests"""
         BoundClass.bind_early(self)
 
     @property
@@ -133,7 +139,7 @@ class BaseResource(Generic[PutType, GetType]):
         put = BoundClass(Put)
         get = BoundClass(Get)
 
-    def _do_put(self, event: PutType) -> Optional[bool]:
+    def _do_put(self, event: PutType) -> bool:
         """Perform the *put* operation.
 
         This method needs to be implemented by subclasses. If the conditions
@@ -160,16 +166,20 @@ class BaseResource(Generic[PutType, GetType]):
         idx = 0
         while idx < len(self.put_queue):
             put_event = self.put_queue[idx]
+            # if _do_put returns True,
             proceed = self._do_put(put_event)
             if not put_event.triggered:
                 idx += 1
             elif self.put_queue.pop(idx) != put_event:
                 raise RuntimeError('Put queue invariant violated')
+            else:
+                # remove triggered event
+                pass
 
             if not proceed:
                 break
 
-    def _do_get(self, event: GetType) -> Optional[bool]:
+    def _do_get(self, event: GetType) -> bool:
         """Perform the *get* operation.
 
         This method needs to be implemented by subclasses. If the conditions
@@ -202,6 +212,8 @@ class BaseResource(Generic[PutType, GetType]):
                 idx += 1
             elif self.get_queue.pop(idx) != get_event:
                 raise RuntimeError('Get queue invariant violated')
-
+            else:
+                pass
+            
             if not proceed:
                 break

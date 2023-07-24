@@ -189,6 +189,8 @@ class Environment:
 
         # Process callbacks of the event. Set the events callbacks to None
         # immediately to prevent concurrent modifications.
+
+        # print(f'now = {self._now}, handle event {event}')
         callbacks, event.callbacks = event.callbacks, None  # type: ignore
         for callback in callbacks:
             callback(event)
