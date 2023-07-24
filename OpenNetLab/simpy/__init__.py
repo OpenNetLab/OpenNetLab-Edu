@@ -10,11 +10,15 @@ from .resources.container import Container
 from .resources.resource import (
     Resource, PriorityResource, PreemptiveResource
 )
+from .resources.store import (
+    Store, PriorityStore, FilterStore, PriorityItem
+)
 
 __all__ = [
     "Environment", "RealtimeEnvironment",
     "Event", "Timeout", "Process", "AllOf", "AnyOf", "Interrupt",
     "SimPyException", "Interrupt", "StopProcess",
     "Container",
-    "Resource", "PriorityResource", "PreemptiveResource"
+    "Resource", "PriorityResource", "PreemptiveResource",
+    "Store", "PriorityStore", "FilterStore", "PriorityItem"
 ]

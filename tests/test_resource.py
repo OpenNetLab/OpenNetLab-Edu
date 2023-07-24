@@ -4,6 +4,9 @@ import pytest
 from OpenNetLab import simpy
 
 
+#######################################################################
+#                            test Resource                            #
+#######################################################################
 def test_resource(env, log):
     def pem(env, name, resource, log):
         req = resource.request()
@@ -23,6 +26,25 @@ def test_resource(env, log):
     env.run()
 
     assert log == [('a', 1), ('b', 2)]
+
+
+def test_immediate_put_request(env):
+    resource = simpy.Resource(env, capacity=1)
+    assert len(resource.users) == 0
+    assert len(resource.queue) == 0
+
+    # The resource is empty, the first request will succeed immediately without
+    # entering the queue.
+    request = resource.request()
+    assert request.triggered
+    assert len(resource.users) == 1
+    assert len(resource.queue) == 0
+
+    # A second request will get enqueued however.
+    request = resource.request()
+    assert not request.triggered
+    assert len(resource.users) == 1
+    assert len(resource.queue) == 1
 
 
 def test_resource_context_manager(env, log):
@@ -396,6 +418,28 @@ def test_container(env, log):
     assert log == [('p', 1), ('g', 1), ('g', 2), ('p', 2)]
 
 
+def test_immediate_get_request(env):
+    container = simpy.Container(env)
+    # Put something in the container, this request is triggered immediately
+    # without entering the queue.
+    request = container.put(1)
+    assert request.triggered
+    assert container.level == 1
+    assert len(container.put_queue) == 0
+
+    # The first get request will succeed immediately without entering the
+    # queue.
+    request = container.get(1)
+    assert request.triggered
+    assert container.level == 0
+    assert len(container.get_queue) == 0
+
+    # A second get request will get enqueued.
+    request = container.get(1)
+    assert not request.triggered
+    assert len(container.get_queue) == 1
+
+
 def test_contaier_get_queued(env):
     def proc(env, delay, container, func_name):
         yield env.timeout(delay)
@@ -415,7 +459,6 @@ def test_contaier_get_queued(env):
     env.run(until=2)
     assert [evt.proc for evt in container.put_queue] == [p3]
     assert [evt.proc for evt in container.get_queue] == []
-
 
 
 def test_initial_container_capacity(env):
@@ -445,3 +488,192 @@ def test_container_init_capacity(env, error, args):
         pytest.raises(error, simpy.Container, *args)
     else:
         simpy.Container(*args)
+
+
+#######################################################################
+#                             test Store                              #
+#######################################################################
+def test_store(env):
+    def putter(env, store, item):
+        yield store.put(item)
+
+    def getter(env, store, orig_item):
+        item = yield store.get()
+        assert item is orig_item
+
+    store = simpy.Store(env, capacity=2)
+    item = object()
+
+    # NOTE: Does the start order matter? Need to test this.
+    env.process(putter(env, store, item))
+    env.process(getter(env, store, item))
+    env.run()
+
+
+@pytest.mark.parametrize('Store', [
+    simpy.Store,
+    simpy.FilterStore,
+])
+def test_initial_store_capacity(env, Store):
+    store = Store(env)
+    assert store.capacity == float('inf')
+
+
+def test_store_capacity(env):
+    pytest.raises(ValueError, simpy.Store, env, 0)
+    pytest.raises(ValueError, simpy.Store, env, -1)
+
+    capacity = 2
+    store = simpy.Store(env, capacity)
+    env.process((store.put(i) for i in range(capacity + 1)))
+    env.run()
+
+    # Ensure store is filled to capacity
+    assert len(store.items) == capacity
+
+
+def test_store_cancel(env):
+    store = simpy.Store(env, capacity=1)
+
+    def acquire_implicit_cancel():
+        with store.get():
+            yield env.timeout(1)
+            # implicit cancel() when exiting with-block
+
+    env.process(acquire_implicit_cancel())
+    env.run()
+
+
+def test_priority_store_item_priority(env):
+    pstore = simpy.PriorityStore(env, 3)
+    log = []
+
+    def getter(wait):
+        yield env.timeout(wait)
+        item = yield pstore.get()
+        log.append(item)
+
+    # Do not specify priority; the items themselves will be compared to
+    # determine priority.
+    env.process((pstore.put(s) for s in 'bcadefg'))
+    env.process(getter(1))
+    env.process(getter(2))
+    env.process(getter(3))
+    env.run()
+    assert log == ['a', 'b', 'c']
+
+
+def test_priority_store_stable_order(env):
+    pstore = simpy.PriorityStore(env, 3)
+    log = []
+
+    def getter(wait):
+        yield env.timeout(wait)
+        _, item = yield pstore.get()
+        log.append(item)
+
+    items = [object() for _ in range(3)]
+
+    # Unorderable items are inserted with same priority.
+    env.process((pstore.put(simpy.PriorityItem(idx, item))
+                for idx, item in enumerate(items)))
+    env.process(getter(1))
+    env.process(getter(2))
+    env.process(getter(3))
+    env.run()
+    assert log == items
+
+
+def test_filter_store(env):
+    def pem(env):
+        store = simpy.FilterStore(env, capacity=2)
+
+        get_event = store.get(lambda item: item == 'b')
+        yield store.put('a')
+        assert not get_event.triggered
+        yield store.put('b')
+        assert get_event.triggered
+
+    env.process(pem(env))
+    env.run()
+
+
+def test_filter_store_get_after_mismatch(env):
+    def putter(env, store):
+        # The order of putting 'spam' before 'eggs' is important here.
+        yield store.put('spam')
+        yield env.timeout(1)
+        yield store.put('eggs')
+
+    def getter(store):
+        # The order of requesting 'eggs' before 'spam' is important here.
+        eggs = store.get(lambda i: i == 'eggs')
+        spam = store.get(lambda i: i == 'spam')
+
+        ret = yield spam | eggs
+        assert spam in ret and eggs not in ret
+        assert env.now == 0
+
+        yield eggs
+        assert env.now == 1
+
+    store = simpy.FilterStore(env, capacity=2)
+    env.process(getter(store))
+    env.process(putter(env, store))
+    env.run()
+
+
+def test_filter_calls_best_case(env):
+    """The filter function is called every item in the store until a match is
+    found. In the best case the first item already matches."""
+    log = []
+
+    def log_filter(item):
+        log.append(f'check {item}')
+        return True
+
+    store = simpy.FilterStore(env)
+    store.items = [1, 2, 3]
+
+    def getter(store):
+        log.append(f'get {yield store.get(log_filter)}')
+        log.append(f'get {yield store.get(log_filter)}')
+        log.append(f'get {yield store.get(log_filter)}')
+
+    env.process(getter(store))
+    env.run()
+
+    assert log == ['check 1', 'get 1', 'check 2', 'get 2', 'check 3', 'get 3']
+
+
+def test_filter_calls_worst_case(env):
+    """In the worst case the filter function is being called for items multiple
+    times."""
+
+    log = []
+    store = simpy.FilterStore(env)
+
+    def putter(store):
+        for i in range(4):
+            log.append(f'put {i}')
+            yield store.put(i)
+
+    def log_filter(item):
+        log.append(f'check {item}')
+        return item >= 3
+
+    def getter(store):
+        log.append(f'get {yield store.get(log_filter)}')
+
+    env.process(getter(store))
+    env.process(putter(store))
+    env.run()
+
+    # The filter function is repeatedly called for every item in the store
+    # until a match is found.
+    assert log == [
+        'put 0', 'check 0',
+        'put 1', 'check 0', 'check 1',
+        'put 2', 'check 0', 'check 1', 'check 2',
+        'put 3', 'check 0', 'check 1', 'check 2', 'check 3', 'get 3',
+    ]

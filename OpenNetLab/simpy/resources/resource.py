@@ -15,10 +15,6 @@ class Request(Put):
     request is triggered once an earlier usage request on the resource is
     released.
 
-    usage:
-        req = resource.reqeust()
-        yield req
-        req.release()
     """
 
     resource: 'Resource'
@@ -105,7 +101,8 @@ class Resource(BaseResource):
             event.usage_since = self._env.now
             event.succeed()
             return True
-        return False
+        else:
+            return False
 
     def _do_get(self, event: Release) -> bool:
         try:
@@ -117,16 +114,9 @@ class Resource(BaseResource):
 
 
 class PriorityRequest(Request):
-    """Request the usage of *resource* with a given *priority*. If the
-    *resource* supports preemption and *preempt* is ``True`` other usage
-    requests of the *resource* may be preempted (see
-    :class:`PreemptiveResource` for details).
-
-    This event type inherits :class:`Request` and adds some additional
-    attributes needed by :class:`PriorityResource` and
-    :class:`PreemptiveResource`
-
-    """
+    """Request the usage of resource with a given priority. If the
+    resource supports preemption and preempt is True other usage
+    requests of the resource may be preempted."""
 
     def __init__(
         self, resource: 'Resource', priority: int = 0, preempt: bool = True
@@ -136,8 +126,7 @@ class PriorityRequest(Request):
         priority."""
 
         self.preempt = preempt
-        """Indicates whether the request should preempt a resource user or not
-        (:class:`PriorityResource` ignores this flag)."""
+        """Indicates whether the request should preempt a resource user or not"""
 
         self.time = resource._env.now
         """The time at which the request was made."""
@@ -167,13 +156,8 @@ class SortedQueue(list):
 
 
 class PriorityResource(Resource):
-    """A :class:`~simpy.resources.resource.Resource` supporting prioritized
-    requests.
-
-    Pending requests in the :attr:`~Resource.queue` are sorted in ascending
-    order by their *priority* (that means lower values are more important).
-
-    """
+    """Use SortedQueue to hold all the pending requests. The requests are
+    ordered by their (priority, time, not preempted) attribute"""
 
     PutQueue = SortedQueue
     GetQueue = list
@@ -201,11 +185,6 @@ class PriorityResource(Resource):
 
 
 class Preempted:
-    """Cause of an preemption :class:`~simpy.exceptions.Interrupt` containing
-    information about the preemption.
-
-    """
-
     def __init__(
         self,
         by: Optional[Process],

@@ -20,7 +20,7 @@ def pem(env, resource):)
 
 
 class Put(Event, ContextManager['Put'], Generic[ResourceType]):
-    """Generic event for requesting to put something into the *resource*.
+    """Generic event for requesting to put something into the resource.
 
     This event can act as context manager and can be used with the with
     statement to automatically cancel the request if an exception  occurs:
@@ -58,19 +58,7 @@ class Put(Event, ContextManager['Put'], Generic[ResourceType]):
 
 
 class Get(Event, ContextManager['Get'], Generic[ResourceType]):
-    """Generic event for requesting to get something from the *resource*.
-
-    This event (and all of its subclasses) can act as context manager and can
-    be used with the :keyword:`with` statement to automatically cancel the
-    request if an exception (like an :class:`simpy.exceptions.Interrupt` for
-    example) occurs:
-
-    .. code-block:: python
-
-        with res.get() as request:
-            item = yield request
-
-    """
+    """Generic event for requesting to get something from the resource."""
 
     def __init__(self, resource: ResourceType):
         super().__init__(resource._env)
@@ -97,11 +85,10 @@ class Get(Event, ContextManager['Get'], Generic[ResourceType]):
         """Cancel this get request.
 
         This method has to be called if the get request must be aborted, for
-        example if a process needs to handle an exception like an
-        :class:`~simpy.exceptions.Interrupt`.
+        example if a process needs to handle an exception.
 
-        If the get request was created in a :keyword:`with` statement, this
-        method is called automatically.
+        If the get request was created in a with statement, this method is
+        called automatically.
 
         """
         if not self.triggered:
@@ -140,20 +127,19 @@ class BaseResource(Generic[PutType, GetType]):
         get = BoundClass(Get)
 
     def _do_put(self, event: PutType) -> bool:
-        """Perform the *put* operation.
+        """Perform the put operation.
 
         This method needs to be implemented by subclasses. If the conditions
-        for the put *event* are met, the method must trigger the event (e.g.
-        call :meth:`Event.succeed()` with an apropriate value).
+        for the put event are met, the method must trigger the event.
 
-        This method is called by :meth:`_trigger_put` for every event in the
-        :attr:`put_queue`, as long as the return value does not evaluate
-        ``False``.
         """
         raise NotImplementedError(self)
 
     def _trigger_put(self, get_event: Optional[GetType]) -> None:
         """This method is called once a new put event has been created or a get
+        event has been processed.
+
+        This method is called once a new put event has been created or a get
         event has been processed.
 
         The method iterates over all put events in the put_queue and calls
@@ -180,16 +166,7 @@ class BaseResource(Generic[PutType, GetType]):
                 break
 
     def _do_get(self, event: GetType) -> bool:
-        """Perform the *get* operation.
-
-        This method needs to be implemented by subclasses. If the conditions
-        for the get *event* are met, the method must trigger the event (e.g.
-        call :meth:`Event.succeed()` with an apropriate value).
-
-        This method is called by :meth:`_trigger_get` for every event in the
-        :attr:`get_queue`, as long as the return value does not evaluate
-        ``False``.
-        """
+        """Perform the get operation."""
         raise NotImplementedError(self)
 
     def _trigger_get(self, put_event: Optional[PutType]) -> None:
@@ -198,9 +175,9 @@ class BaseResource(Generic[PutType, GetType]):
         This method is called once a new get event has been created or a put
         event has been processed.
 
-        The method iterates over all get events in the :attr:`get_queue` and
-        calls :meth:`_do_get` to check if the conditions for the event are met.
-        If :meth:`_do_get` returns ``False``, the iteration is stopped early.
+        The method iterates over all get events in the get_queue and calls
+        _do_get to check if the conditions for the event are met. If _do_get
+        returns False, the iteration is stopped early.
         """
 
         # Maintain queue invariant: All get requests must be untriggered.
@@ -214,6 +191,6 @@ class BaseResource(Generic[PutType, GetType]):
                 raise RuntimeError('Get queue invariant violated')
             else:
                 pass
-            
+
             if not proceed:
                 break
