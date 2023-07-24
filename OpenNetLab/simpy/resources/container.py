@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 from ..core import Environment, BoundClass
 from .base import Put, Get, BaseResource
@@ -7,53 +7,29 @@ ContainerAmount = Union[int, float]
 
 
 class ContainerPut(Put):
-    """Request to put *amount* of matter into the *container*. The request will
-    be triggered once there is enough space in the *container* available.
-
-    Raise a :exc:`ValueError` if ``amount <= 0``.
-
-    """
-
     def __init__(self, container: 'Container', amount: ContainerAmount):
         if amount <= 0:
             raise ValueError(f'amount(={amount}) must be > 0.')
         self.amount = amount
-        """The amount of matter to be put into the container."""
-
         super().__init__(container)
 
 
 class ContainerGet(Get):
-    """Request to get *amount* of matter from the *container*. The request will
-    be triggered once there is enough matter available in the *container*.
-
-    Raise a :exc:`ValueError` if ``amount <= 0``.
-
-    """
-
     def __init__(self, container: 'Container', amount: ContainerAmount):
         if amount <= 0:
             raise ValueError(f'amount(={amount}) must be > 0.')
         self.amount = amount
-        """The amount of matter to be taken out of the container."""
-
         super().__init__(container)
 
 
 class Container(BaseResource):
-    """Resource containing up to *capacity* of matter which may either be
+    """Resource containing up to capacity of matter which may either be
     continuous (like water) or discrete (like apples). It supports requests to
     put or get matter into/from the container.
 
-    The *env* parameter is the :class:`~simpy.core.Environment` instance the
-    container is bound to.
-
-    The *capacity* defines the size of the container. By default, a container
+    The capacity defines the size of the container. By default, a container
     is of unlimited size. The initial amount of matter is specified by *init*
-    and defaults to ``0``.
-
-    Raise a :exc:`ValueError` if ``capacity <= 0``, ``init < 0`` or
-    ``init > capacity``.
+    and defaults to 0.
 
     """
 
@@ -63,6 +39,7 @@ class Container(BaseResource):
         capacity: ContainerAmount = float('inf'),
         init: ContainerAmount = 0,
     ):
+        # Rasei a ValueError for invalid conditions
         if capacity <= 0:
             raise ValueError('"capacity" must be > 0.')
         if init < 0:
@@ -97,18 +74,18 @@ class Container(BaseResource):
         put = BoundClass(ContainerPut)
         get = BoundClass(ContainerGet)
 
-    def _do_put(self, event: ContainerPut) -> Optional[bool]:
+    def _do_put(self, event: ContainerPut) -> bool:
         if self._capacity - self._level >= event.amount:
             self._level += event.amount
             event.succeed()
             return True
         else:
-            return None
+            return False
 
-    def _do_get(self, event: ContainerGet) -> Optional[bool]:
+    def _do_get(self, event: ContainerGet) -> bool:
         if self._level >= event.amount:
             self._level -= event.amount
             event.succeed()
             return True
         else:
-            return None
+            return False

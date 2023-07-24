@@ -1,3 +1,4 @@
+from _pytest.main import pytest_addoption
 import pytest
 
 from OpenNetLab import simpy
@@ -366,3 +367,81 @@ def test_nested_preemption(env, log):
         (26, 3),
         (31, 4)
     ]
+
+
+#######################################################################
+#                           test Container                            #
+#######################################################################
+def test_container(env, log):
+    def putter(env, buf, log):
+        yield env.timeout(1)
+        while True:
+            yield buf.put(2)
+            log.append(('p', env.now))
+            yield env.timeout(1)
+
+    def getter(env, buf, log):
+        yield buf.get(1)
+        log.append(('g', env.now))
+
+        yield env.timeout(1)
+        yield buf.get(1)
+        log.append(('g', env.now))
+
+    buf = simpy.Container(env, init=0, capacity=2)
+    env.process(putter(env, buf, log))
+    env.process(getter(env, buf, log))
+    env.run(until=5)
+
+    assert log == [('p', 1), ('g', 1), ('g', 2), ('p', 2)]
+
+
+def test_contaier_get_queued(env):
+    def proc(env, delay, container, func_name):
+        yield env.timeout(delay)
+        with getattr(container, func_name)(1) as req:
+            yield req
+
+    container = simpy.Container(env, 1)
+    p0 = env.process(proc(env, 0, container, 'get'))
+    p1 = env.process(proc(env, 1, container, 'put'))
+    p2 = env.process(proc(env, 1, container, 'put'))
+    p3 = env.process(proc(env, 1, container, 'put'))
+
+    env.run(until=1)
+    assert [evt.proc for evt in container.put_queue] == []
+    assert [evt.proc for evt in container.get_queue] == [p0]
+
+    env.run(until=2)
+    assert [evt.proc for evt in container.put_queue] == [p3]
+    assert [evt.proc for evt in container.get_queue] == []
+
+
+
+def test_initial_container_capacity(env):
+    container = simpy.Container(env)
+    assert container.capacity == float('inf')
+
+
+def test_container_get_put_bounds(env):
+    container = simpy.Container(env)
+    pytest.raises(ValueError, container.get, -3)
+    pytest.raises(ValueError, container.put, -3)
+
+
+@pytest.mark.parametrize(('error', 'args'), [
+    # erorr, capacity, init
+    (None, [2, 1]),  # normal case
+    (None, [1, 1]),  # init == capacity should be valid
+    (None, [1, 0]),  # init == 0 should be valid
+    (ValueError, [1, 2]),  # init > capcity
+    (ValueError, [0]),  # capacity == 0
+    (ValueError, [-1]),  # capacity < 0
+    (ValueError, [1, -1]),  # init < 0
+])
+def test_container_init_capacity(env, error, args):
+    args.insert(0, env)
+    if error:
+        pytest.raises(error, simpy.Container, *args)
+    else:
+        simpy.Container(*args)

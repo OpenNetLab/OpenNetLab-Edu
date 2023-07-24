@@ -31,7 +31,7 @@ class Put(Event, ContextManager['Put'], Generic[ResourceType]):
         self.resource = resource
         self.proc: Optional[Process] = self.env.active_process
         resource.put_queue.append(self)
-        # self.callbacks.append(resource._trigger_get)
+        self.callbacks.append(resource._trigger_get)
         resource._trigger_put(None)
 
     def __enter__(self) -> 'Put':
