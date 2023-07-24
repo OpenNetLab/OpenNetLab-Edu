@@ -1,13 +1,13 @@
 import re
 import pytest
-from OpenNetLab import simpy
+from OpenNetLab import sim
 
 def test_interruption(env):
     def interruptee(env):
         try:
             yield env.timeout(10)
             pytest.fail('Expected an interrupt')
-        except simpy.Interrupt as interrupt:
+        except sim.Interrupt as interrupt:
             assert interrupt.cause == 'interrupt!'
 
     def interruptor(env):
@@ -24,7 +24,7 @@ def test_concurrent_interrupts(env, log):
         while True:
             try:
                 yield env.timeout(10)
-            except simpy.Interrupt as interrupt:
+            except sim.Interrupt as interrupt:
                 log.append((env.now, interrupt.cause))
 
     def farmer(env, name, fox):
@@ -46,7 +46,7 @@ def test_concurrent_interrupts_and_events(env, log):
                 yield coup
                 log.append(f'coup completed at {env.now}')
                 return
-            except simpy.Interrupt as interrupt:
+            except sim.Interrupt as interrupt:
                 log.append(f'coup interrupted at {env.now}')
 
     def master_plan(env, fox, coup):
@@ -67,7 +67,7 @@ def test_init_interrupt(env):
         try:
             yield env.timeout(10)
             pytest.fail('Should have been interrupted')
-        except simpy.Interrupt:
+        except sim.Interrupt:
             assert env.now == 0
 
     def root(env):
@@ -112,7 +112,7 @@ def test_multiple_interrupts(env):
     def child(env):
         try:
             yield env.timeout(1)
-        except simpy.Interrupt as i:
+        except sim.Interrupt as i:
             return i.cause
 
     def parent(env):
@@ -143,7 +143,7 @@ def test_immediate_interrupt(env, log):
     def child(env, log):
         try:
             yield env.event()
-        except simpy.Interrupt:
+        except sim.Interrupt:
             log.append(env.now)
 
     def parent(env, log):
@@ -164,7 +164,7 @@ def test_interrupt_event(env):
     def child(env):
         try:
             yield env.event()
-        except simpy.Interrupt:
+        except sim.Interrupt:
             assert env.now == 5
 
     def parent(env):
@@ -184,7 +184,7 @@ def test_concurrent_behaviour(env):
             try:
                 yield timeouts.pop(0)
                 assert False, 'Expected an interrupt'
-            except simpy.Interrupt:
+            except sim.Interrupt:
                 pass
 
     def proc_b(env, proc_a):

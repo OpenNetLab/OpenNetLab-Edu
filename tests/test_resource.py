@@ -1,7 +1,7 @@
 from _pytest.main import pytest_addoption
 import pytest
 
-from OpenNetLab import simpy
+from OpenNetLab import sim
 
 
 #######################################################################
@@ -18,7 +18,7 @@ def test_resource(env, log):
 
         log.append((name, env.now))
 
-    resource = simpy.Resource(env, capacity=1)
+    resource = sim.Resource(env, capacity=1)
     assert resource.capacity == 1
     assert resource.count == 0
     env.process(pem(env, 'a', resource, log))
@@ -29,7 +29,7 @@ def test_resource(env, log):
 
 
 def test_immediate_put_request(env):
-    resource = simpy.Resource(env, capacity=1)
+    resource = sim.Resource(env, capacity=1)
     assert len(resource.users) == 0
     assert len(resource.queue) == 0
 
@@ -55,7 +55,7 @@ def test_resource_context_manager(env, log):
 
         log.append((name, env.now))
 
-    resource = simpy.Resource(env, capacity=1)
+    resource = sim.Resource(env, capacity=1)
     env.process(pem(env, 'a', resource, log))
     env.process(pem(env, 'b', resource, log))
     env.run()
@@ -70,7 +70,7 @@ def test_resource_slots(env, log):
             log.append((name, env.now))
             yield env.timeout(1)
 
-    resource = simpy.Resource(env, capacity=3)
+    resource = sim.Resource(env, capacity=3)
     for i in range(9):
         env.process(pem(env, str(i), resource, log))
     env.run()
@@ -92,7 +92,7 @@ def test_resource_continue_after_interrupt(env):
             evt = res.request()
             yield evt
             pytest.fail('Should not have gotten the resource.')
-        except simpy.Interrupt:
+        except sim.Interrupt:
             yield evt
             res.release(evt)
             assert env.now == 1
@@ -102,7 +102,7 @@ def test_resource_continue_after_interrupt(env):
         return 0
         yield
 
-    res = simpy.Resource(env, 1)
+    res = sim.Resource(env, 1)
     env.process(pem(env, res))
     proc = env.process(victim(env, res))
     env.process(interruptor(env, proc))
@@ -122,7 +122,7 @@ def test_resource_release_after_interrupt(env):
             evt = res.request()
             yield evt
             pytest.fail('Should not have gotten the resource.')
-        except simpy.Interrupt:
+        except sim.Interrupt:
             res.release(evt)
             assert env.now == 0
 
@@ -131,7 +131,7 @@ def test_resource_release_after_interrupt(env):
         return 0
         yield
 
-    res = simpy.Resource(env, 1)
+    res = sim.Resource(env, 1)
     env.process(pem(env, res))
     proc = env.process(victim(env, res))
     env.process(interruptor(env, proc))
@@ -149,7 +149,7 @@ def test_resource_immediate_requests(env):
         return ans
 
     def parent(env):
-        res = simpy.Resource(env, 1)
+        res = sim.Resource(env, 1)
         child1 = env.process(child(env, res))
         child2 = env.process(child(env, res))
         ans1 = yield child1
@@ -174,7 +174,7 @@ def test_resource_cm_exception(env, log):
         except ValueError as err:
             assert err.args == ('foo',)
 
-    resource = simpy.Resource(env, 1)
+    resource = sim.Resource(env, 1)
     env.process(pem(env, resource, log, True))
     env.process(pem(env, resource, log, False))
     env.run()
@@ -187,7 +187,7 @@ def test_resource_with_condition(env):
             result = yield res_event | env.timeout(1)
             assert res_event in result
 
-    resource = simpy.Resource(env, 1)
+    resource = sim.Resource(env, 1)
     env.process(process(env, resource))
     env.run()
 
@@ -202,7 +202,7 @@ def test_resource_with_priority_queue(env):
         yield env.timeout(5)
         resource.release(req)
 
-    resource = simpy.PriorityResource(env, capacity=1)
+    resource = sim.PriorityResource(env, capacity=1)
     env.process(process(env, 0, resource, 2, 0))
     env.process(process(env, 2, resource, 3, 10))
     env.process(process(env, 2, resource, 3, 15))  # Test equal priority
@@ -213,7 +213,7 @@ def test_resource_with_priority_queue(env):
 def test_sorted_queue_maxlen(env):
     """Requests must fail if more than *maxlen* requests happen
     concurrently."""
-    resource = simpy.PriorityResource(env, capacity=1)
+    resource = sim.PriorityResource(env, capacity=1)
     resource.put_queue.maxlen = 1
 
     def process(env, resource):
@@ -239,7 +239,7 @@ def test_get_users(env):
             yield req
             yield env.timeout(1)
 
-    resource = simpy.Resource(env, 1)
+    resource = sim.Resource(env, 1)
     procs = [env.process(process(env, resource)) for i in range(3)]
     env.run(until=1)
     assert [evt.proc for evt in resource.users] == procs[0:1]
@@ -260,14 +260,14 @@ def test_preemptive_resource(env):
             with resource.request(priority=prio) as req:
                 yield req
                 pytest.fail('Should have received an preemption interrupt')
-        except simpy.Interrupt:
+        except sim.Interrupt:
             pass
 
     def proc_b(env, resource, prio):
         with resource.request(priority=prio) as req:
             yield req
 
-    resource = simpy.PreemptiveResource(env, 1)
+    resource = sim.PreemptiveResource(env, 1)
     env.process(proc_a(env, resource, 1))
     env.process(proc_b(env, resource, 0))
 
@@ -281,7 +281,7 @@ def test_preemptive_resource_timeout_0(env):
                 yield req
                 yield env.timeout(1)
                 pytest.fail('Should have received an interrupt/preemption.')
-            except simpy.Interrupt:
+            except sim.Interrupt:
                 pass
         yield env.event()
         pytest.fail('Should never get here')
@@ -291,7 +291,7 @@ def test_preemptive_resource_timeout_0(env):
             yield req
             assert env.now == 0
 
-    resource = simpy.PreemptiveResource(env, 1)
+    resource = sim.PreemptiveResource(env, 1)
     env.process(proc_a(env, resource, 1))
     env.process(proc_b(env, resource, 0))
     env.run()
@@ -305,10 +305,10 @@ def test_mixed_preemption(env, log):
                 yield req
                 yield env.timeout(2)
                 log.append((env.now, id))
-            except simpy.Interrupt as ir:
+            except sim.Interrupt as ir:
                 log.append((env.now, id, (ir.cause.by, ir.cause.usage_since)))
 
-    res = simpy.PreemptiveResource(env, capacity=1)
+    res = sim.PreemptiveResource(env, capacity=1)
     p0 = env.process(p(env, res, id=0, delay=0, prio=2, preempt=True, log=log))
     p1 = env.process(p(env, res, id=1, delay=0, prio=2, preempt=True, log=log))
     p2 = env.process(
@@ -341,7 +341,7 @@ def test_nested_preemption(env, log):
                 yield req
                 yield env.timeout(5)
                 log.append((env.now, id))
-            except simpy.Interrupt as ir:
+            except sim.Interrupt as ir:
                 log.append((env.now, id, (ir.cause.by, ir.cause.usage_since)))
 
     def process2(env, res0, res1, id, delay, prio, preempt, log):
@@ -354,16 +354,16 @@ def test_nested_preemption(env, log):
                         yield req1
                         yield env.timeout(5)
                         log.append((env.now, id))
-                    except simpy.Interrupt as ir:
+                    except sim.Interrupt as ir:
                         log.append((env.now, id, (ir.cause.by,
                                                   ir.cause.usage_since,
                                                   ir.cause.resource)))
-            except simpy.Interrupt as ir:
+            except sim.Interrupt as ir:
                 log.append((env.now, id, (ir.cause.by, ir.cause.usage_since,
                                           ir.cause.resource)))
 
-    res0 = simpy.PreemptiveResource(env, 1)
-    res1 = simpy.PreemptiveResource(env, 1)
+    res0 = sim.PreemptiveResource(env, 1)
+    res1 = sim.PreemptiveResource(env, 1)
 
     # interrupted by p1
     p0 = env.process(process2(env, res0, res1, id=0, delay=0,
@@ -410,7 +410,7 @@ def test_container(env, log):
         yield buf.get(1)
         log.append(('g', env.now))
 
-    buf = simpy.Container(env, init=0, capacity=2)
+    buf = sim.Container(env, init=0, capacity=2)
     env.process(putter(env, buf, log))
     env.process(getter(env, buf, log))
     env.run(until=5)
@@ -419,7 +419,7 @@ def test_container(env, log):
 
 
 def test_immediate_get_request(env):
-    container = simpy.Container(env)
+    container = sim.Container(env)
     # Put something in the container, this request is triggered immediately
     # without entering the queue.
     request = container.put(1)
@@ -446,7 +446,7 @@ def test_contaier_get_queued(env):
         with getattr(container, func_name)(1) as req:
             yield req
 
-    container = simpy.Container(env, 1)
+    container = sim.Container(env, 1)
     p0 = env.process(proc(env, 0, container, 'get'))
     p1 = env.process(proc(env, 1, container, 'put'))
     p2 = env.process(proc(env, 1, container, 'put'))
@@ -462,12 +462,12 @@ def test_contaier_get_queued(env):
 
 
 def test_initial_container_capacity(env):
-    container = simpy.Container(env)
+    container = sim.Container(env)
     assert container.capacity == float('inf')
 
 
 def test_container_get_put_bounds(env):
-    container = simpy.Container(env)
+    container = sim.Container(env)
     pytest.raises(ValueError, container.get, -3)
     pytest.raises(ValueError, container.put, -3)
 
@@ -485,9 +485,9 @@ def test_container_get_put_bounds(env):
 def test_container_init_capacity(env, error, args):
     args.insert(0, env)
     if error:
-        pytest.raises(error, simpy.Container, *args)
+        pytest.raises(error, sim.Container, *args)
     else:
-        simpy.Container(*args)
+        sim.Container(*args)
 
 
 #######################################################################
@@ -501,7 +501,7 @@ def test_store(env):
         item = yield store.get()
         assert item is orig_item
 
-    store = simpy.Store(env, capacity=2)
+    store = sim.Store(env, capacity=2)
     item = object()
 
     # NOTE: Does the start order matter? Need to test this.
@@ -511,8 +511,8 @@ def test_store(env):
 
 
 @pytest.mark.parametrize('Store', [
-    simpy.Store,
-    simpy.FilterStore,
+    sim.Store,
+    sim.FilterStore,
 ])
 def test_initial_store_capacity(env, Store):
     store = Store(env)
@@ -520,11 +520,11 @@ def test_initial_store_capacity(env, Store):
 
 
 def test_store_capacity(env):
-    pytest.raises(ValueError, simpy.Store, env, 0)
-    pytest.raises(ValueError, simpy.Store, env, -1)
+    pytest.raises(ValueError, sim.Store, env, 0)
+    pytest.raises(ValueError, sim.Store, env, -1)
 
     capacity = 2
-    store = simpy.Store(env, capacity)
+    store = sim.Store(env, capacity)
     env.process((store.put(i) for i in range(capacity + 1)))
     env.run()
 
@@ -533,7 +533,7 @@ def test_store_capacity(env):
 
 
 def test_store_cancel(env):
-    store = simpy.Store(env, capacity=1)
+    store = sim.Store(env, capacity=1)
 
     def acquire_implicit_cancel():
         with store.get():
@@ -545,7 +545,7 @@ def test_store_cancel(env):
 
 
 def test_priority_store_item_priority(env):
-    pstore = simpy.PriorityStore(env, 3)
+    pstore = sim.PriorityStore(env, 3)
     log = []
 
     def getter(wait):
@@ -564,7 +564,7 @@ def test_priority_store_item_priority(env):
 
 
 def test_priority_store_stable_order(env):
-    pstore = simpy.PriorityStore(env, 3)
+    pstore = sim.PriorityStore(env, 3)
     log = []
 
     def getter(wait):
@@ -575,7 +575,7 @@ def test_priority_store_stable_order(env):
     items = [object() for _ in range(3)]
 
     # Unorderable items are inserted with same priority.
-    env.process((pstore.put(simpy.PriorityItem(idx, item))
+    env.process((pstore.put(sim.PriorityItem(idx, item))
                 for idx, item in enumerate(items)))
     env.process(getter(1))
     env.process(getter(2))
@@ -586,7 +586,7 @@ def test_priority_store_stable_order(env):
 
 def test_filter_store(env):
     def pem(env):
-        store = simpy.FilterStore(env, capacity=2)
+        store = sim.FilterStore(env, capacity=2)
 
         get_event = store.get(lambda item: item == 'b')
         yield store.put('a')
@@ -617,7 +617,7 @@ def test_filter_store_get_after_mismatch(env):
         yield eggs
         assert env.now == 1
 
-    store = simpy.FilterStore(env, capacity=2)
+    store = sim.FilterStore(env, capacity=2)
     env.process(getter(store))
     env.process(putter(env, store))
     env.run()
@@ -632,7 +632,7 @@ def test_filter_calls_best_case(env):
         log.append(f'check {item}')
         return True
 
-    store = simpy.FilterStore(env)
+    store = sim.FilterStore(env)
     store.items = [1, 2, 3]
 
     def getter(store):
@@ -651,7 +651,7 @@ def test_filter_calls_worst_case(env):
     times."""
 
     log = []
-    store = simpy.FilterStore(env)
+    store = sim.FilterStore(env)
 
     def putter(store):
         for i in range(4):

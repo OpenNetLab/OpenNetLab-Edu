@@ -16,7 +16,7 @@ from typing import (
 from .exceptions import Interrupt
 
 if TYPE_CHECKING and TYPE_CHECKING != 'SPHINX':  # Avoid circular import
-    from simpy.core import Environment, SimTime
+    from sim.core import Environment, SimTime
 
 PENDING: object = object()
 """Unique object to identify pending values of events."""
@@ -197,7 +197,7 @@ class Initialize(Event):
 
 
 class Interruption(Event):
-    """Immediately schedules an :class:`~simpy.exceptions.Interrupt` exception
+    """Immediately schedules an :class:`~sim.exceptions.Interrupt` exception
     with the given *cause* to be thrown into *process*.
 
     This event is automatically triggered when it is created.
@@ -380,7 +380,7 @@ class Process(Event):
 
 
 class ConditionValue:
-    """Result of a :class:`~simpy.events.Condition`. It supports convenient
+    """Result of a :class:`~sim.events.Condition`. It supports convenient
     dict-like access to the triggered events and their values. The events are
     ordered by their occurences in the condition."""
 
@@ -552,7 +552,7 @@ class Condition(Event):
 
 
 class AllOf(Condition):
-    """A :class:`~simpy.events.Condition` event that is triggered if all of
+    """A :class:`~sim.events.Condition` event that is triggered if all of
     a list of *events* have been successfully triggered. Fails immediately if
     any of *events* failed.
 
@@ -563,7 +563,7 @@ class AllOf(Condition):
 
 
 class AnyOf(Condition):
-    """A :class:`~simpy.events.Condition` event that is triggered if any of
+    """A :class:`~sim.events.Condition` event that is triggered if any of
     a list of *events* has been successfully triggered. Fails immediately if
     any of *events* failed.
 

@@ -121,19 +121,19 @@ class Environment:
         # static type checking.
 
         def process(self, generator: ProcessGenerator) -> Process:
-            """Create a new :class:`~simpy.events.Process` instance for
+            """Create a new :class:`~sim.events.Process` instance for
             *generator*."""
             return Process(self, generator)
 
         def timeout(
             self, delay: SimTime = 0, value: Optional[Any] = None
         ) -> Timeout:
-            """Return a new :class:`~simpy.events.Timeout` event with a *delay*
+            """Return a new :class:`~sim.events.Timeout` event with a *delay*
             and, optionally, a *value*."""
             return Timeout(self, delay, value)
 
         def event(self) -> Event:
-            """Return a new :class:`~simpy.events.Event` instance.
+            """Return a new :class:`~sim.events.Event` instance.
 
             Yielding this event suspends a process until another process
             triggers the event.
@@ -141,11 +141,11 @@ class Environment:
             return Event(self)
 
         def all_of(self, events: Iterable[Event]) -> AllOf:
-            """Return a :class:`~simpy.events.AllOf` condition for *events*."""
+            """Return a :class:`~sim.events.AllOf` condition for *events*."""
             return AllOf(self, events)
 
         def any_of(self, events: Iterable[Event]) -> AnyOf:
-            """Return a :class:`~simpy.events.AnyOf` condition for *events*."""
+            """Return a :class:`~sim.events.AnyOf` condition for *events*."""
             return AnyOf(self, events)
 
     else:
@@ -211,7 +211,7 @@ class Environment:
         - If it is ``None`` (which is the default), this method will return
           when there are no further events to be processed.
 
-        - If it is an :class:`~simpy.events.Event`, the method will continue
+        - If it is an :class:`~sim.events.Event`, the method will continue
           stepping until this event has been triggered and will return its
           value.  Raises a :exc:`RuntimeError` if there are no further events
           to be processed and the *until* event was not triggered.

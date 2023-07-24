@@ -1,6 +1,6 @@
 import pytest
 
-from OpenNetLab.simpy import Interrupt
+from OpenNetLab.sim import Interrupt
 
 def test_start_non_process(env):
     def foo():

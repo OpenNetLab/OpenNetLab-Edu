@@ -1,6 +1,6 @@
 import pytest
 
-from OpenNetLab import simpy
+from OpenNetLab import sim
 
 @pytest.fixture
 def log():
@@ -8,4 +8,4 @@ def log():
 
 @pytest.fixture
 def env():
-    return simpy.Environment()
+    return sim.Environment()

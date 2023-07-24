@@ -192,7 +192,7 @@ class Preempted:
         resource: 'Resource',
     ):
         self.by = by
-        """The preempting :class:`simpy.events.Process`."""
+        """The preempting :class:`sim.events.Process`."""
         self.usage_since = usage_since
         """The simulation time at which the preempted process started to use
         the resource."""

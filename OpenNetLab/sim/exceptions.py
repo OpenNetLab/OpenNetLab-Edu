@@ -10,7 +10,7 @@ class SimPyException(Exception):
 
 class Interrupt(SimPyException):
     """Exception thrown into a process if it is interrupted (see
-    :func:`~simpy.events.Process.interrupt()`).
+    :func:`~sim.events.Process.interrupt()`).
 
     :attr:`cause` provides the reason for the interrupt, if any.
 

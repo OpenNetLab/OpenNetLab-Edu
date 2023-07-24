@@ -1,6 +1,6 @@
 from time import monotonic, monotonic_ns, sleep
 import pytest
-from OpenNetLab.simpy import RealtimeEnvironment
+from OpenNetLab.sim import RealtimeEnvironment
 
 
 def process(env, log, sleep_time, timeout=1):

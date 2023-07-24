@@ -2,7 +2,7 @@ from typing import (
     Callable
 )
 
-from ..simpy import Environment
+from ..sim import Environment
 from .packet import Packet
 
 

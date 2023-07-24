@@ -1,5 +1,5 @@
-from .. import simpy
-from ..simpy import Environment
+from .. import sim
+from ..sim import Environment
 
 class PacketSink:
     def __init__(
