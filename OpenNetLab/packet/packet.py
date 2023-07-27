@@ -3,6 +3,9 @@ Simple class that represents a packet.
 """
 
 
+from ..sim.core import SimTime
+
+
 class Packet:
     def __init__(
         self,
@@ -27,7 +30,7 @@ class Packet:
         self.color = None
         self.priority = {}
         self.ack = 0
-        self.current_time = 0
+        self.current_time: SimTime = 0
         self.perhop_time = {}  # used by port to record per-hop arrival times
 
     def __repr__(self) -> str:

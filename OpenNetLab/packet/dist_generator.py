@@ -1,8 +1,10 @@
 from typing import (
-    Callable
+    Callable,
+    Optional
 )
 
 from ..sim import Environment
+from ..netdev import Device
 from .packet import Packet
 
 
@@ -25,7 +27,7 @@ class DistPacketGenerator:
         self.size_dist = size_dist
         self.initial_delay = initial_delay
         self.finish = finish
-        self.out = None
+        self.out: Optional[Device] = None
         self.packets_send = 0
         self.action = env.process(self.run(env))
         self.flow_id = flow_id
@@ -53,4 +55,7 @@ class DistPacketGenerator:
                     f'Send packet {packet.packet_id} with flow_id {packet.flow_id} at '
                     f'time {env.now}'
                 )
+            if not self.out:
+                raise Exception('out of current packet generator is None,\n'
+                                '\tYou have to set out for packet generator')
             self.out.put(packet)
