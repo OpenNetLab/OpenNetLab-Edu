@@ -4,7 +4,7 @@ from typing import (
 )
 
 from ..sim import Environment
-from ..netdev import Device
+from ..device import Device
 from .packet import Packet
 
 
@@ -14,7 +14,7 @@ class DistPacketGenerator:
         env: 'Environment',
         element_id: str,
         arrival_dist: Callable[[], float],
-        size_dist: Callable[[], float],
+        size_dist: Callable[[], int],
         initial_delay: int = 0,
         finish=float('inf'),
         flow_id=0,

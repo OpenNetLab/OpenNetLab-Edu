@@ -1,9 +1,12 @@
-from .core import Environment
+from .core import (
+    Environment,
+    SimTime
+)
 from .exceptions import (
-    SimPyException, Interrupt, StopProcess
+    Interrupt, StopProcess
 )
 from .events import (
-    Event, Timeout, Process, AllOf, AnyOf
+    Event, Timeout, Process, AllOf, AnyOf, ProcessGenerator
 )
 from .rt import RealtimeEnvironment
 from .resources.container import Container
@@ -15,9 +18,9 @@ from .resources.store import (
 )
 
 __all__ = [
-    "Environment", "RealtimeEnvironment",
-    "Event", "Timeout", "Process", "AllOf", "AnyOf", "Interrupt",
-    "SimPyException", "Interrupt", "StopProcess",
+    "Environment", "RealtimeEnvironment", "SimTime",
+    "Event", "Timeout", "Process", "AllOf", "AnyOf", "ProcessGenerator",
+    "Interrupt", "StopProcess",
     "Container",
     "Resource", "PriorityResource", "PreemptiveResource",
     "Store", "PriorityStore", "FilterStore", "PriorityItem"

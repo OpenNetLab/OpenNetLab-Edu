@@ -4,11 +4,11 @@ SimPy specific exeptions.
 """
 
 
-class SimPyException(Exception):
+class SimBaseException(Exception):
     """Base class for all SimPy specific exceptions."""
 
 
-class Interrupt(SimPyException):
+class Interrupt(SimBaseException):
     """Exception thrown into a process if it is interrupted (see
     :func:`~sim.events.Process.interrupt()`).
 
@@ -31,7 +31,7 @@ class Interrupt(SimPyException):
         return self.args[0]
 
 
-class StopProcess(SimPyException):
+class StopProcess(SimBaseException):
     """Raised to stop a SimPy process (similar to :exc:`StopIteration`).
 
     In Python 2, a ``return value`` inside generator functions is not allowed.

@@ -5,7 +5,7 @@ from typing import (
 )
 
 from ..packet import Packet
-from .device import Device
+from ..device import Device
 from ..sim import Environment, Store
 
 

@@ -1,5 +1,5 @@
 from ..packet import Packet
-from .device import Device
+from ..device import Device
 from ..sim import Environment, Store
 
 
@@ -52,11 +52,11 @@ class Port(Device):
             """Dropped packets count"""
             return self._packets_dropped
 
-        def run(self, env):
+        def run(self, env: Environment):
             while True:
                 packet = yield self.store.get()
                 if self.rate > 0:
-                    yield self.env.timeout(packet.size * 8 / self.rate)
+                    yield env.timeout(packet.size * 8 / self.rate)
                     self._byte_size -= packet.size
 
                 self.out.put(packet)

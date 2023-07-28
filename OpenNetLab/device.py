@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
-from ..packet import Packet
-from ..sim import Environment
+
+from .sim import (
+    Environment,
+    ProcessGenerator
+)
+
+from .packet import Packet
 
 from typing import (
     Optional
@@ -8,17 +13,16 @@ from typing import (
 
 
 class Device(ABC):
-
     def __init__(self):
         self._out = None
         pass
 
     @abstractmethod
-    def run(self, env: Environment):
+    def run(self, env: Environment) -> ProcessGenerator:
         pass
 
     @abstractmethod
-    def put(self, packet: Packet) -> None:
+    def put(self, packet: Packet):
         pass
 
     @property

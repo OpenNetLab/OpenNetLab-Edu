@@ -2,21 +2,25 @@
 Simple class that represents a packet.
 """
 
-
-from ..sim.core import SimTime
+from ..types import (
+    PacketId,
+    PacketPayloadType,
+    FlowId
+)
+from ..sim import SimTime
 
 
 class Packet:
     def __init__(
         self,
         time: float,
-        size: float,
-        packet_id: int,
+        size: int,
+        packet_id: PacketId,
         realtime=0,
         src="source",
         dst="destination",
-        flow_id=0,
-        payload=None,
+        flow_id: FlowId = 0,
+        payload: PacketPayloadType=None,
     ):
         self.time = time
         self.size = size
@@ -28,7 +32,7 @@ class Packet:
         self.payload = payload
 
         self.color = None
-        self.priority = {}
+        self.priorities = {}
         self.ack = 0
         self.current_time: SimTime = 0
         self.perhop_time = {}  # used by port to record per-hop arrival times
