@@ -1,13 +1,13 @@
-import uuid
-from collections import defaultdict as dd
-from typing import DefaultDict, Dict
+from typing import Dict
 from ..types import *
-from ..sim import Environment, Store
+from ..sim import Environment, ProcessGenerator
 from ..packet import Packet
-from ..device import Device
+from .base import Scheduler
 
 
-class SPServer(Device):
+class StaticPriority(Scheduler):
+    """Implements a static priority server
+    """
     def __init__(
         self,
         env: Environment,
@@ -15,34 +15,11 @@ class SPServer(Device):
         priorities: Dict[FlowId, Priority],
         debug: bool = False,
     ):
-        self.env = env
-        self.rate = rate
-        self.priorities = sorted(priorities.items(), key=lambda item: item[1])
-        self.debug = debug
-
-        self.element_id = uuid.uuid4()
-        self.stores: DefaultDict[FlowId, Store] = dd(lambda: Store(env))
-        self.queue_byte_size: DefaultDict[FlowId, int] = dd(lambda: 0)
-        self.queue_count: DefaultDict[FlowId, int] = dd(lambda: 0)
-
-        self.current_packet = None
-        self.packets_received = 0
-        self.packets_available = Store(env)
+        super().__init__(env, rate, debug)
+        self.priorities = sorted(priorities.items(), key=lambda item: item[1], reverse=True)
         self.proc = env.process(self.run(env))
 
-    def __repr__(self) -> str:
-        return f"sp-{str(self.element_id)[:4]}"
-
-    def dprint(self, s: str):
-        if self.debug:
-            print(f"At time {self.env.now}: {self} ", end="")
-            print(s)
-
-    @property
-    def total_packets(self):
-        return sum(self.queue_count.values())
-
-    def run(self, env: Environment):
+    def run(self, env: Environment) -> ProcessGenerator:
         while True:
             for flow_id, prio in self.priorities:
                 if prio > 0:
@@ -51,30 +28,6 @@ class SPServer(Device):
                         continue
                     packet: Packet = yield store.get()
                     packet.priorities[self.element_id] = prio
-                    flow_id = packet.flow_id
-                    self.current_packet = packet
-
-                    yield self.env.timeout(packet.size * 8.0 / self.rate)
-
-                    self.queue_count[flow_id] -= 1
-                    self.queue_byte_size[flow_id] -= packet.size
-                    if self.out:
-                        self.dprint(
-                            f"sent out packet {packet.packet_id} from flow {packet.flow_id}"
-                            f" of priority {packet.priorities[self.element_id]}"
-                        )
-                        self.out.put(packet)
-                    self.current_packet = None
-
+                    yield env.process(self.send_packet(packet))
             if self.total_packets == 0:
                 yield self.packets_available.get()
-
-    def put(self, packet: Packet):
-        flow_id = packet.flow_id
-        self.packets_received += 1
-        if self.total_packets == 0:
-            self.packets_available.put(True)
-        self.queue_byte_size[flow_id] += packet.size
-        self.queue_count[flow_id] += 1
-        self.dprint(f"received packet {packet.packet_id} from flow {flow_id}".format())
-        self.stores[flow_id].put(packet)

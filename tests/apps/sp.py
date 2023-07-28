@@ -4,7 +4,7 @@ a propagation delay distribution, and then to a packet sink.
 """
 
 from onl.packet import DistPacketGenerator, PacketSink
-from onl.scheduler import SPServer
+from onl.scheduler import StaticPriority
 from onl.sim import Environment
 
 
@@ -23,8 +23,8 @@ def packet_size():
 
 
 env = Environment()
-sp1 = SPServer(env, 100, {0: 1, 1: 10}, debug=True)
-sp2 = SPServer(env, 100, {0: 50, 1: 100}, debug=True)
+sp1 = StaticPriority(env, 100, {0: 1, 1: 10}, debug=True)
+sp2 = StaticPriority(env, 100, {0: 50, 1: 100}, debug=True)
 ps = PacketSink(env, rec_flow_ids=False, debug=True)
 
 pg1 = DistPacketGenerator(env, "flow_1", arrival_1, packet_size, flow_id=0)

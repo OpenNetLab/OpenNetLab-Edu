@@ -1,5 +1,5 @@
-from .sp import SPServer
+from .sp import StaticPriority
 
 __all__ = [
-    "SPServer"
+    "StaticPriority"
 ]

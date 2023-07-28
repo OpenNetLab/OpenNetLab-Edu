@@ -1,15 +1,10 @@
 from abc import ABC, abstractmethod
 
-from .sim import (
-    Environment,
-    ProcessGenerator
-)
+from .sim import Environment, ProcessGenerator
 
 from .packet import Packet
 
-from typing import (
-    Optional
-)
+from typing import Optional
 
 
 class Device(ABC):
@@ -26,7 +21,7 @@ class Device(ABC):
         pass
 
     @property
-    def out(self) -> Optional['Device']:
+    def out(self) -> Optional["Device"]:
         return self._out
 
     @out.setter
