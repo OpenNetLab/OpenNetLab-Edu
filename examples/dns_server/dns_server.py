@@ -1,5 +1,5 @@
 import socket
-from OpenNetLab.node import TCPServerNode
+from onl.node import TCPServerNode
 import asyncio
 
 from dns_packet import DNSPacket

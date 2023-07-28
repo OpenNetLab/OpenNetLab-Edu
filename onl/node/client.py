@@ -69,7 +69,7 @@ class TCPClientNode(abc.ABC):
         3. return when all the packets have been sent and received
 
         To get intuitive impression, please check the example expirements composed
-        using OpenNetLab.
+        using onl.
         """
 
     async def teardown(self):

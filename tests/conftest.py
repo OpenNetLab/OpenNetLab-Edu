@@ -1,6 +1,6 @@
 import pytest
 
-from OpenNetLab import sim
+from onl import sim
 
 @pytest.fixture
 def log():

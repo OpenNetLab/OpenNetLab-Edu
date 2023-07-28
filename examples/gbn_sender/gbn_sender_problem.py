@@ -2,8 +2,8 @@ import asyncio
 import json
 from collections import deque
 
-from OpenNetLab.node import TCPClientNode
-from OpenNetLab.utils import Timer
+from onl.node import TCPClientNode
+from onl.utils import Timer
 from gbn_packet import new_packet
 from gbn_logger import logger
 

@@ -1,4 +1,4 @@
-<h1 align="center">OpenNetLab Demo</h1>
+<h1 align="center">onl Demo</h1>
 
 ## installation
 
@@ -8,7 +8,7 @@ python3 -m pip install . --user
 
 ## experiment examples
 
-check out example experiments implemented using OpenNetLab
+check out example experiments implemented using onl
 
 * [Simple Example](./examples/simple/README.md)
 * [GBN ARQ Protocol Experiment](./examples/gbn_sender/README.md)
@@ -20,7 +20,7 @@ documentation is generate by [sphinx](https://www.sphinx-doc.org/en/master/#)
 
 ## roadmap
 
-- [x] Basic OpenNetLab package implementation
+- [x] Basic onl package implementation
 - [x] Basic Documentation
 - [x] Simple Example implementation
 - [x] GBN sender lab implementation

@@ -1,4 +1,4 @@
-from OpenNetLab.node import TCPClientNode
+from onl.node import TCPClientNode
 import json
 from dns_packet import DNSPacket
 import asyncio

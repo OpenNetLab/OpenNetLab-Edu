@@ -3,9 +3,9 @@ A basic example that connects two packet generators to a network wire with
 a propagation delay distribution, and then to a packet sink.
 """
 
-from OpenNetLab.packet import DistPacketGenerator, PacketSink
-from OpenNetLab.scheduler import SPServer
-from OpenNetLab.sim import Environment
+from onl.packet import DistPacketGenerator, PacketSink
+from onl.scheduler import SPServer
+from onl.sim import Environment
 
 
 def arrival_1():

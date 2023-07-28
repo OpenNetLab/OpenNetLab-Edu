@@ -1,7 +1,7 @@
 from _pytest.main import pytest_addoption
 import pytest
 
-from OpenNetLab import sim
+from onl import sim
 
 
 #######################################################################

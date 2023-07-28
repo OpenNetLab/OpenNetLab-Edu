@@ -1,6 +1,6 @@
 import re
 import pytest
-from OpenNetLab import sim
+from onl import sim
 
 def test_interruption(env):
     def interruptee(env):

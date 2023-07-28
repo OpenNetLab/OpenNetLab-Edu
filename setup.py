@@ -4,16 +4,16 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="OpenNetLab",
-    version="0.2",
+    name="onl",
+    version="0.3",
     author="zdszero",
     author_email="dingzifeng8@gmail.com",
-    description="OpenNetLab for edu 2022 By USTC",
+    description="onl for education 2023 By USTC",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/zdszero/OpenNetLab",
+    url="https://github.com/onl/onl-Edu",
     project_urls={
-        "Bug Tracker": "https://github.com/zdszero/OpenNetLab/issues",
+        "Bug Tracker": "https://github.com/onl/onl-Edu/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",

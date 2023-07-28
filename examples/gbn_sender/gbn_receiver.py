@@ -1,7 +1,7 @@
 import asyncio
 import json
 
-from OpenNetLab.node import TCPServerNode
+from onl.node import TCPServerNode
 from gbn_packet import new_packet
 from gbn_logger import logger
 

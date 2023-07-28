@@ -1,7 +1,7 @@
 import asyncio
 import json
 
-from OpenNetLab.node.client import TCPClientNode
+from onl.node.client import TCPClientNode
 
 
 class SRSender(TCPClientNode):

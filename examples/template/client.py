@@ -1,5 +1,5 @@
 import asyncio
-from OpenNetLab.node import TCPClientNode
+from onl.node import TCPClientNode
 
 
 class Obj:

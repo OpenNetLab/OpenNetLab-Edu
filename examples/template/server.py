@@ -1,5 +1,5 @@
 import asyncio
-from OpenNetLab.node import TCPServerNode
+from onl.node import TCPServerNode
 
 
 class Obj:

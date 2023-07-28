@@ -2,9 +2,9 @@ from functools import partial
 import random
 from random import expovariate
 
-from OpenNetLab.packet import *
-from OpenNetLab.netdev import *
-from OpenNetLab import sim
+from onl.packet import *
+from onl.netdev import *
+from onl import sim
 
 
 # Packets arrive with a constant interval of 1.5 seconds.
