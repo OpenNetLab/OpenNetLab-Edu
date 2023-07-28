@@ -1,7 +1,6 @@
 from collections import defaultdict as dd
 
-from .. import sim
-from ..sim import Environment, Store
+from ..sim import Store
 
 
 class PacketSink:
@@ -64,7 +63,7 @@ class PacketSink:
             self.last_arrival[rec_index] = now
 
         if self.debug:
-            print("At time {:.2f}, packet {:d} arrived.".format(
+            print("At time {:.1f}, packet {:d} arrived.".format(
                 now, packet.packet_id))
             if self.rec_waits and len(self.packet_sizes[rec_index]) >= 10:
                 bytes_received = sum(self.packet_sizes[rec_index][-9:])

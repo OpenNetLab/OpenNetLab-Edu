@@ -65,6 +65,9 @@ class Store(base.BaseResource):
         self.items: List[Any] = []
         """List of the items available in the store."""
 
+    def size(self):
+        return len(self.items)
+
     if TYPE_CHECKING:
 
         def put(  # type: ignore[override] # noqa: F821
