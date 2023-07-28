@@ -8,8 +8,8 @@ from ..device import Device
 
 
 class Scheduler(Device):
-    """Implements a generic scheduler
-    """
+    """Implements a generic MultiQueueScheduler"""
+
     def __init__(
         self,
         env: Environment,
@@ -21,13 +21,11 @@ class Scheduler(Device):
         self.debug = debug
 
         self.element_id = uuid.uuid4()
-        self.stores: DefaultDict[FlowId, Store] = dd(lambda: Store(env))
         self.queue_byte_size: DefaultDict[FlowId, int] = dd(lambda: 0)
         self.queue_count: DefaultDict[FlowId, int] = dd(lambda: 0)
 
         self.current_packet = None
         self.packets_received = 0
-        self.packets_available = Store(env)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}-{str(self.element_id)[:4]}"
@@ -57,6 +55,39 @@ class Scheduler(Device):
             self.out.put(packet)
         self.current_packet = None
 
+
+class MultiQueueScheduler(Scheduler):
+    """Implements a generic MultiQueueScheduler"""
+
+    def __init__(
+        self,
+        env: Environment,
+        rate: float,
+        debug: bool = False,
+    ):
+        super().__init__(env, rate, debug)
+        self.stores: DefaultDict[FlowId, Store] = dd(lambda: Store(env))
+        self.packets_available = Store(env)
+
+    @property
+    def total_packets(self):
+        return sum(self.queue_count.values())
+
+    def send_packet(self, packet: Packet):
+        flow_id = packet.flow_id
+        self.current_packet = packet
+
+        yield self.env.timeout(packet.size * 8.0 / self.rate)
+
+        self.queue_count[flow_id] -= 1
+        self.queue_byte_size[flow_id] -= packet.size
+        if self.out:
+            self.dprint(
+                f"sent out packet {packet.packet_id} from flow {packet.flow_id}"
+                f" of priority {packet.priorities[self.element_id]}"
+            )
+            self.out.put(packet)
+        self.current_packet = None
 
     def put(self, packet: Packet):
         flow_id = packet.flow_id

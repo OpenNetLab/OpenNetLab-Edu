@@ -584,6 +584,28 @@ def test_priority_store_stable_order(env):
     assert log == items
 
 
+def test_priority_store_custom_item(env):
+    pstore = sim.PriorityStore(env, 3)
+    log = []
+
+    def getter(wait):
+        yield env.timeout(wait)
+        item = yield pstore.get()
+        log.append(item)
+
+    def putter():
+        yield pstore.put((4, 6))
+        yield pstore.put((4, 3))
+        yield pstore.put((2, 3))
+    # Unorderable items are inserted with same priority.
+    env.process(putter())
+    env.process(getter(1))
+    env.process(getter(2))
+    env.process(getter(3))
+    env.run()
+    assert log == [(2, 3), (4, 3), (4, 6)]
+
+
 def test_filter_store(env):
     def pem(env):
         store = sim.FilterStore(env, capacity=2)
