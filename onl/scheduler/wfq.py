@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Set
 
 from ..types import *
 from ..sim import Environment, ProcessGenerator, SimTime, PriorityStore
@@ -7,17 +7,7 @@ from .base import Scheduler
 
 
 class WFQ(Scheduler):
-    """
-    Implements a Weighted Fair Queueing (WFQ) server.
-
-    Reference:
-    A. K. Parekh, R. G. Gallager, "A Generalized Processor Sharing Approach to Flow Control
-    in Integrated Services Networks: The Single-Node Case," IEEE/ACM Trans. Networking,
-    vol. 1, no. 3, pp. 344-357, June 1993.
-
-    https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=234856
-
-    """
+    """Implements a Weighted Fair Queueing (WFQ) scheduler"""
 
     def __init__(
         self,
@@ -29,38 +19,66 @@ class WFQ(Scheduler):
         super().__init__(env, rate, debug)
         self.weights = weights
         self.finish_times: Dict[FlowId, SimTime] = dict()
-        self.active_set = set()
+        """The calculated finish time of each packet
+        """
+        self.active_set: Set[FlowId] = set()
+        """The flow_id set of all non-empty subqueue
+        """
         self.vtime: SimTime = 0.0
-        self.last_update: SimTime = 0.0
+        """Virtual clock time, the time elasping speed is based
+        on the size of active set
+        """
+        self.last_time: SimTime = 0.0
+        """Clock time of most recent put and send operation"""
         self.store = PriorityStore(env)
+
+        env.process(self.run(env))
+
+    def update_vtime(self):
+        """ Update vtime according to
+            1. clock time elapsed since last put or send
+            2. weights of current active set
+        """
+        if len(self.active_set) > 0:
+            weight_sum = 0.0
+            now = self.env.now
+            for i in self.active_set:
+                weight_sum += self.weights[i]
+            self.vtime += (now - self.last_time) / weight_sum
+
+    def reset_vtime(self):
+        self.vtime = 0
+        for flow_id in self.weights.keys():
+            self.finish_times[flow_id] = 0.0
 
     def run(self, env: Environment) -> ProcessGenerator:
         while True:
             _, packet = yield self.store.get()
-            env.process(self.send_packet(packet))
+            yield env.process(self.send_packet(packet))
+            self.update_vtime()
+            flow_id = packet.flow_id
+            if self.queue_count[flow_id] == 0:
+                self.active_set.remove(flow_id)
+            if len(self.active_set) == 0:
+                self.reset_vtime()
+            self.last_time = env.now
 
     def put(self, packet: Packet):
-        self.packets_received += 1
         flow_id = packet.flow_id
         now = self.env.now
         if len(self.active_set) == 0:
-            self.vtime = 0.0
-            for flow_id, _ in self.finish_times.items():
-                self.finish_times[flow_id] = 0.0
+            self.reset_vtime()
         else:
-            weight_sum = 0.0
-            for i in self.active_set:
-                weight_sum += self.weights[i]
-            self.vtime += (now - self.last_update) / weight_sum
+            self.update_vtime()
             self.finish_times[flow_id] = (
                 max(self.finish_times[flow_id], self.vtime)
                 + packet.size * 8.0 / self.rate * self.weights[flow_id]
             )
 
-        self.queue_byte_size[flow_id] += packet.size
-        self.queue_count[flow_id] += 1
-        self.active_set.add(flow_id)
-        self.last_update = now
+        self.add_packet_to_queue(packet)
+        if flow_id not in self.active_set:
+            self.active_set.add(flow_id)
+        self.last_time = now
 
         self.dprint(
             f"Packet arrived at {now}, with flow_id {flow_id}, "

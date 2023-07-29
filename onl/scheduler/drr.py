@@ -6,7 +6,7 @@ from .base import MultiQueueScheduler
 
 
 class DRR(MultiQueueScheduler):
-    """Implements a static priority server
+    """Implements a deficit round robin (DRR) scheduler.
     """
     MIN_QUANTUM = 1500
 
