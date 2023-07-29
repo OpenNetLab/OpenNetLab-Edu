@@ -1,4 +1,5 @@
 import pytest
+from onl.utils import Timer
 
 def test_discrete_time_steps(env, log):
     def pem(env, log):
@@ -54,3 +55,29 @@ def test_triggered_timeout(env):
         assert value == 'I was already done'
 
     env.run(env.process(process(env)))
+    
+
+def test_timer(env, log):
+    def cb(id: int):
+        log.append(f'{id} finish')
+    timer = Timer(env, timer_id=1, timeout=5, timeout_callback=cb)
+    def pem(env, timer):
+        yield timer.proc
+        assert env.now == 5
+        assert log == ['1 finish']
+    env.process(pem(env, timer))
+    env.run()
+
+def test_timer_restart(env, log):
+    def cb(id: int):
+        log.append('finish')
+    timer = Timer(env, timer_id=1, timeout=5, timeout_callback=cb)
+    def pem(env, timer):
+        yield env.timeout(3)
+        assert env.now == 3
+        timer.restart()
+        yield timer.proc
+        assert env.now == 8
+        assert log == ['finish']
+    env.process(pem(env, timer))
+    env.run()

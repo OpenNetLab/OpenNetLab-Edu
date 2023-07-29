@@ -1,31 +1,48 @@
-import asyncio
+from typing import Callable
+from ..sim import Environment, ProcessGenerator, Interrupt, SimTime
+
+TimerId = int
+
 
 class Timer:
-    def __init__(self, timeout, callback, *args):
-        """Set a timer a task. After the timeout seconds,
-        callback will be executed
-        """
+    def __init__(
+        self,
+        env: Environment,
+        timer_id: TimerId,
+        timeout: SimTime,
+        timeout_callback: Callable[[TimerId], None],
+    ):
+        if timeout <= 0:
+            raise ValueError("timeout should be positive value")
+        self.env = env
+        self.timer_id = timer_id
         self.timeout = timeout
-        self.callback = callback
-        self.args = args
-        self.task = None
-        self.auto_reset = False
+        self.timeout_callback = timeout_callback
+        self.start_time = self.env.now
+        self.expire_time = self.start_time + timeout
+        self.stopped = False
+        self.proc = env.process(self.run(env))
 
-    async def _job(self):
-        await asyncio.sleep(self.timeout / 1000)
-        await self.callback(*self.args)
-        if self.auto_reset:
-            self.reset()
+    def run(self, env: Environment) -> ProcessGenerator:
+        try:
+            print(f"{env.now} {self.expire_time}")
+            while env.now < self.expire_time:
+                yield self.env.timeout(self.expire_time - env.now)
+                if not self.stopped:
+                    self.timeout_callback(self.timer_id)
+        except Interrupt as e:
+            pass
 
-    def cancel(self):
-        """Cancel the task
-        """
-        if self.task and not self.task.cancelled():
-            self.task.cancel()
+    def wait(self):
+        yield self.proc
 
-    def reset(self):
-        """Reset the timer
-        """
-        if self.task and not self.task.cancelled():
-            self.task.cancel()
-        self.task = asyncio.create_task(self._job())
+    def stop(self):
+        self.stopped = True
+        self.expire_time = self.env.now
+
+    def restart(self):
+        self.start_time = self.env.now
+        self.expire_time = self.start_time + self.timeout
+        if not self.proc.processed:
+            self.proc.interrupt("restart timer")
+            self.proc = self.env.process(self.run(self.env))
