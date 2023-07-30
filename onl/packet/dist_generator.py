@@ -1,6 +1,6 @@
 from typing import Callable, Optional
 
-from ..sim import Environment
+from ..sim import Environment, SimTime
 from ..device import Device
 from .packet import Packet
 
@@ -12,7 +12,7 @@ class DistPacketGenerator:
         element_id: str,
         arrival_dist: Callable[[], float],
         size_dist: Callable[[], int],
-        initial_delay: int = 0,
+        initial_delay: SimTime = 0,
         finish=float("inf"),
         flow_id=0,
         rec_flow=False,

@@ -1,15 +1,15 @@
 import uuid
 from collections import defaultdict as dd
-from typing import DefaultDict
+from typing import DefaultDict, List
 
 from ..sim.events import ProcessGenerator
 from ..types import *
 from ..sim import Environment, Store
 from ..packet import Packet
-from ..device import Device
+from ..device import Device, OutMixIn
 
 
-class Scheduler(Device):
+class Scheduler(Device, OutMixIn):
     """Implements a generic Scheduler"""
 
     def __init__(
@@ -37,10 +37,25 @@ class Scheduler(Device):
             print(f"At time {self.env.now}: {self} ", end="")
             print(s)
 
+    def all_flows(self) -> List[FlowId]:
+        """Returns all flow ids in current scheduler"""
+        return list(self.queue_count.keys())
+
+    def byte_size(self, flow_id: FlowId) -> int:
+        """Returns the byte size sum of the queue for a paticular flow_id"""
+        return self.queue_byte_size[flow_id]
+
+    def size(self, flow_id: FlowId) -> int:
+        """Returns the size of the queue for a paticular flow_id"""
+        return self.queue_count[flow_id]
+
+    @property
+    def packet_in_service(self):
+        return self.current_packet
+
     @property
     def total_packets(self) -> int:
-        """Return packets count of all subqueues.
-        """
+        """Return packets count of all subqueues."""
         return sum(self.queue_count.values())
 
     def send_packet(self, packet: Packet):
@@ -55,8 +70,7 @@ class Scheduler(Device):
         self.queue_byte_size[flow_id] -= packet.size
         if self.out:
             self.dprint(
-                f"sent out packet {packet.packet_id} from flow {packet.flow_id}"
-                f" of priority {packet.priorities[self.element_id]}"
+                f"sent out packet {packet.packet_id} from flow {packet.flow_id} "
             )
             self.out.put(packet)
         self.current_packet = None
@@ -102,7 +116,9 @@ class MultiQueueScheduler(Scheduler):
         """
 
     def run(self, env: Environment) -> ProcessGenerator:
-        raise NotImplementedError("run(env) is not implemented in MultiQueueScheduler class")
+        raise NotImplementedError(
+            "run(env) is not implemented in MultiQueueScheduler class"
+        )
 
     def put(self, packet: Packet):
         flow_id = packet.flow_id

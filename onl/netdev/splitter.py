@@ -4,7 +4,7 @@ from ..device import Device
 from ..packet import Packet
 
 
-class Splitter:
+class Splitter(Device):
     def __init__(self):
         self.out1: Optional[Device] = None
         self.out2: Optional[Device] = None
@@ -15,8 +15,11 @@ class Splitter:
         if self.out2:
             self.out2.put(copy(packet))
 
+    def run(self, env):
+        raise RuntimeError("splitter should not execute run()")
 
-class NSplitter:
+
+class NSplitter(Device):
     def __init__(self, N: int):
         if isinstance(N, int):
             if N <= 1:
@@ -31,3 +34,6 @@ class NSplitter:
         for out in self.outs[1:]:
             if out:
                 out.put(copy(packet))
+
+    def run(self, env):
+        raise RuntimeError("splitter should not execute run()")

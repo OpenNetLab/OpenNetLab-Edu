@@ -5,7 +5,7 @@ from ..packet import Packet
 from .base import MultiQueueScheduler
 
 
-class RoundRobin(MultiQueueScheduler):
+class RR(MultiQueueScheduler):
     """Implements a round robin MultiQueueScheduler
     """
     def __init__(

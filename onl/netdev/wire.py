@@ -5,11 +5,11 @@ from typing import (
 )
 
 from ..packet import Packet
-from ..device import Device
+from ..device import Device, OutMixIn
 from ..sim import Environment, Store
 
 
-class Wire(Device):
+class Wire(Device, OutMixIn):
     """Implements a network wire (cable) that introduces a propagation delay.
        Set the "out" member variable to the entity to receive the packet.
 
@@ -32,7 +32,7 @@ class Wire(Device):
         self.packets_rec = 0
         self.action = env.process(self.run(env))
 
-    def run(self, env):
+    def run(self, env: Environment):
         while True:
             packet = yield self.store.get()
             if self.loss_dist_fn is None or random.uniform(0, 1) >= self.loss_dist_fn(packet.packet_id):

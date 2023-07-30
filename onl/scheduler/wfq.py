@@ -1,7 +1,7 @@
 from typing import Dict, Set
 
 from ..types import *
-from ..sim import Environment, ProcessGenerator, SimTime, PriorityStore
+from ..sim import Environment, ProcessGenerator, SimTime, PriorityStore, PriorityItem
 from ..packet import Packet
 from .base import Scheduler
 
@@ -32,19 +32,18 @@ class WFQ(Scheduler):
         """Clock time of most recent put and send operation"""
         self.store = PriorityStore(env)
 
-        env.process(self.run(env))
+        self.action = env.process(self.run(env))
 
     def update_vtime(self):
-        """ Update vtime according to
-            1. clock time elapsed since last put or send
-            2. weights of current active set
+        """Update vtime according to
+        1. clock time elapsed since last put or send
+        2. weights of current active set
         """
-        if len(self.active_set) > 0:
-            weight_sum = 0.0
-            now = self.env.now
-            for i in self.active_set:
-                weight_sum += self.weights[i]
-            self.vtime += (now - self.last_time) / weight_sum
+        weight_sum = 0.0
+        now = self.env.now
+        for i in self.active_set:
+            weight_sum += self.weights[i]
+        self.vtime += (now - self.last_time) / weight_sum
 
     def reset_vtime(self):
         self.vtime = 0
@@ -53,7 +52,9 @@ class WFQ(Scheduler):
 
     def run(self, env: Environment) -> ProcessGenerator:
         while True:
-            _, packet = yield self.store.get()
+            item: PriorityItem = yield self.store.get()
+            packet: Packet = item.item
+            # print(f"flow {packet.flow_id} finish at : {item.priority}")
             yield env.process(self.send_packet(packet))
             self.update_vtime()
             flow_id = packet.flow_id
@@ -70,14 +71,12 @@ class WFQ(Scheduler):
             self.reset_vtime()
         else:
             self.update_vtime()
-            self.finish_times[flow_id] = (
-                max(self.finish_times[flow_id], self.vtime)
-                + packet.size * 8.0 / self.rate * self.weights[flow_id]
-            )
+            self.finish_times[flow_id] = max(
+                self.finish_times[flow_id], self.vtime
+            ) + packet.size * 8.0 / (self.rate * self.weights[flow_id])
 
         self.add_packet_to_queue(packet)
-        if flow_id not in self.active_set:
-            self.active_set.add(flow_id)
+        self.active_set.add(flow_id)
         self.last_time = now
 
         self.dprint(
@@ -86,4 +85,4 @@ class WFQ(Scheduler):
             f"finish_time {self.finish_times[flow_id]}"
         )
 
-        self.store.put((self.finish_times[flow_id], packet))
+        self.store.put(PriorityItem((self.finish_times[flow_id], now), packet))
