@@ -2,9 +2,9 @@
 Simple class that represents a packet.
 """
 
+from typing import Any
 from ..types import (
     PacketId,
-    PacketPayloadType,
     FlowId
 )
 from ..sim import SimTime
@@ -16,11 +16,11 @@ class Packet:
         time: float,
         size: int,
         packet_id: PacketId,
-        realtime=0,
+        realtime: float=0,
         src="source",
         dst="destination",
         flow_id: FlowId = 0,
-        payload: PacketPayloadType=None,
+        payload: Any = None,
     ):
         self.time = time
         self.size = size

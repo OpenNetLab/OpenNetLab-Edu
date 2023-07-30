@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
 
 from .sim import Environment, ProcessGenerator
-
 from .packet import Packet
-
 from typing import Optional
 
 
@@ -18,10 +16,14 @@ class Device(ABC):
 
     @abstractmethod
     def put(self, packet: Packet):
+        """Put packet in this device.
+        This function will be called in previous hop.
+        """
         pass
 
     @property
     def out(self) -> Optional["Device"]:
+        """The next hop of current device."""
         return self._out
 
     @out.setter

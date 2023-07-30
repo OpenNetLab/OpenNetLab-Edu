@@ -25,12 +25,11 @@ class Timer:
 
     def run(self, env: Environment) -> ProcessGenerator:
         try:
-            print(f"{env.now} {self.expire_time}")
             while env.now < self.expire_time:
                 yield self.env.timeout(self.expire_time - env.now)
                 if not self.stopped:
                     self.timeout_callback(self.timer_id)
-        except Interrupt as e:
+        except Interrupt as _:
             pass
 
     def wait(self):
