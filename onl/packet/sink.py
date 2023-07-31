@@ -1,6 +1,6 @@
 from collections import defaultdict as dd
 
-from ..sim import Store
+from ..sim import Store, Environment
 from ..device import Device
 
 
@@ -13,7 +13,7 @@ class PacketSink(Device):
 
     def __init__(
         self,
-        env,
+        env: Environment,
         rec_arrivals: bool = True,
         absolute_arrivals: bool = True,
         rec_waits: bool = True,
@@ -34,8 +34,8 @@ class PacketSink(Device):
         self.packet_times = dd(list)
         self.perhop_times = dd(list)
 
-        self.first_arrival = dd(lambda: 0)
-        self.last_arrival = dd(lambda: 0)
+        self.first_arrival = dd(lambda: 0.0)
+        self.last_arrival = dd(lambda: 0.0)
 
         self.debug = debug
 

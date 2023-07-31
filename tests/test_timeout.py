@@ -75,9 +75,9 @@ def test_timer_restart(env, log):
     def pem(env, timer):
         yield env.timeout(3)
         assert env.now == 3
-        timer.restart()
+        timer.restart(6)
         yield timer.proc
-        assert env.now == 8
+        assert env.now == 9
         assert log == ['finish']
     env.process(pem(env, timer))
     env.run()

@@ -39,9 +39,10 @@ class Timer:
         self.stopped = True
         self.expire_time = self.env.now
 
-    def restart(self):
+    def restart(self, timeout: SimTime):
         self.start_time = self.env.now
-        self.expire_time = self.start_time + self.timeout
+        self.timeout = timeout
+        self.expire_time = self.start_time + timeout
         if not self.proc.processed:
             self.proc.interrupt("restart timer")
             self.proc = self.env.process(self.run(self.env))
