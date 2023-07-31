@@ -29,36 +29,42 @@ class SRReceiver(Device, OutMixIn):
         return Packet(time=self.env.now, size=40, packet_id=ackno)
 
     def put(self, packet: Packet):
+        def is_in_window(start: int, winsize: int, array_size: int, target: int) -> bool:
+            dist = (target + array_size - start) % array_size
+            return 0 <= dist < winsize
+
         seqno = packet.packet_id
         data = packet.payload
-        if (seqno >= self.seqno_start - self.window_size) and (seqno <= self.seqno_start - 1):
+        lwnd_start = (self.seqno_start + self.seqno_range - self.window_size) % self.seqno_range
+        rwnd_start = self.seqno_start
+        if is_in_window(lwnd_start, self.window_size, self.seqno_range, seqno):
+            ack_pkt = self.new_packet(seqno)
+            assert self.out
+            self.out.put(ack_pkt)
+            self.dprint(
+                f"send ack {self.seqno_start}"
+            )        
+        elif is_in_window(rwnd_start, self.window_size, self.seqno_range, seqno):
+            dist = (seqno + self.seqno_range - self.seqno_start) % self.seqno_range
+            self.recv_window[(self.recv_start + dist) % self.window_size] = packet
+            while self.recv_window[self.recv_start] is not None:
+                cached_pkt = self.recv_window[self.recv_start]
+                assert cached_pkt
+                self.message += cached_pkt.payload
+                self.recv_window[self.recv_start] = None
+                self.recv_start = (self.recv_start + 1) % self.window_size
+                self.seqno_start = (self.seqno_start + 1) % self.seqno_range
             ack_pkt = self.new_packet(seqno)
             assert self.out
             self.out.put(ack_pkt)
             self.dprint(
                 f"send ack {self.seqno_start}"
             )
-        dist = (seqno + self.seqno_range - self.seqno_start) % self.seqno_range
-        if dist >= self.window_size:
+        else:
             self.dprint(
                 f"discard {data} on invalid seqno: {seqno}"
             )
-            return
-        self.recv_window[(self.recv_start + dist) % self.window_size] = packet
-        while self.recv_window[self.recv_start] is not None:
-            cached_pkt = self.recv_window[self.recv_start]
-            assert cached_pkt
-            self.message += cached_pkt.payload
-            self.recv_window[self.recv_start] = None
-            ack_pkt = self.new_packet(self.seqno_start)
-            self.recv_start = (self.recv_start + 1) % self.window_size
-            self.seqno_start = (self.seqno_start + 1) % self.seqno_range
-            assert self.out
-            self.out.put(ack_pkt)
-            self.dprint(
-                f"send ack {self.seqno_start}"
-            )
-
+            
     def dprint(self, s: str):
         if self.debug:
             print(f"[receiver](time: {self.env.now:.2f})", end=" -> ")

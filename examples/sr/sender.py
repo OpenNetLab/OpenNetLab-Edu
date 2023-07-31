@@ -53,15 +53,14 @@ class SRSender(Device, OutMixIn):
             timer = self.timers.popleft()
             timer.stop()
             self.seqno_start = (self.seqno_start + 1) % self.seqno_range
-        if self.absno < len(self.message):
-            while len(self.outbound) < self.window_size:
-                packet = self.new_packet(self.seqno, self.message[self.absno])
-                self.send_packet(packet)
-                self.seqno = (self.seqno + 1) % self.seqno_range
-                self.absno += 1
-                self.outbound.append(QueueItem(packet))
-                timer = Timer(self.env, self.timeout, self.timeout_callback, auto_restart=True, args=[packet])
-                self.timers.append(timer)
+        while len(self.outbound) < self.window_size and self.absno < len(self.message):
+            packet = self.new_packet(self.seqno, self.message[self.absno])
+            self.send_packet(packet)
+            self.seqno = (self.seqno + 1) % self.seqno_range
+            self.absno += 1
+            self.outbound.append(QueueItem(packet))
+            timer = Timer(self.env, self.timeout, self.timeout_callback, auto_restart=True, args=[packet])
+            self.timers.append(timer)
 
     def timeout_callback(self, packet: Packet):
         self.dprint("timeout")
