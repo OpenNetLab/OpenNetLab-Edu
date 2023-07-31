@@ -3,10 +3,7 @@ Simple class that represents a packet.
 """
 
 from typing import Any
-from ..types import (
-    PacketId,
-    FlowId
-)
+from ..types import PacketId, FlowId
 from ..sim import SimTime
 
 
@@ -16,7 +13,7 @@ class Packet:
         time: float,
         size: int,
         packet_id: PacketId,
-        realtime: float=0,
+        realtime: float = 0,
         src="source",
         dst="destination",
         flow_id: FlowId = 0,
@@ -38,4 +35,4 @@ class Packet:
         self.perhop_time = {}  # used by port to record per-hop arrival times
 
     def __repr__(self) -> str:
-        return f'did: {self.packet_id}, src:  {self.src}, time: {self.time}, size: {self.size}'
+        return f"did: {self.packet_id}, src:  {self.src}, time: {self.time}, size: {self.size}"

@@ -284,9 +284,9 @@ class TCPPacketGenerator(Device, OutMixIn):
                 self.next_seq += packet.size
                 self.timers[packet.packet_id] = Timer(
                     env,
-                    timer_id=packet.packet_id,
                     timeout=self.rto,
                     timeout_callback=self.timeout_callback,
+                    args=packet.packet_id
                 )
                 self.dprint(
                     f"Setting a timer for packet {packet.packet_id} with an "

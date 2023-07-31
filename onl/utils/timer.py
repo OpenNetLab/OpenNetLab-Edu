@@ -1,26 +1,25 @@
 from typing import Callable
 from ..sim import Environment, ProcessGenerator, Interrupt, SimTime
 
-TimerId = int
-
-
 class Timer:
     def __init__(
         self,
         env: Environment,
-        timer_id: TimerId,
         timeout: SimTime,
-        timeout_callback: Callable[[TimerId], None],
+        timeout_callback: Callable,
+        args=None,
+        kwargs=None
     ):
         if timeout <= 0:
             raise ValueError("timeout should be positive value")
         self.env = env
-        self.timer_id = timer_id
         self.timeout = timeout
         self.timeout_callback = timeout_callback
         self.start_time = self.env.now
         self.expire_time = self.start_time + timeout
         self.stopped = False
+        self.args = args if args is not None else []
+        self.kwargs = kwargs if kwargs is not None else {}
         self.proc = env.process(self.run(env))
 
     def run(self, env: Environment) -> ProcessGenerator:
@@ -28,7 +27,7 @@ class Timer:
             while env.now < self.expire_time:
                 yield self.env.timeout(self.expire_time - env.now)
                 if not self.stopped:
-                    self.timeout_callback(self.timer_id)
+                    self.timeout_callback(*self.args, **self.kwargs)
         except Interrupt as _:
             pass
 
