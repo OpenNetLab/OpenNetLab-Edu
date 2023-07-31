@@ -60,7 +60,7 @@ class SRSender(Device, OutMixIn):
                 self.seqno = (self.seqno + 1) % self.seqno_range
                 self.absno += 1
                 self.outbound.append(QueueItem(packet))
-                timer = Timer(self.env, self.timeout, self.timeout_callback, args=[packet])
+                timer = Timer(self.env, self.timeout, self.timeout_callback, auto_restart=True, args=[packet])
                 self.timers.append(timer)
 
     def timeout_callback(self, packet: Packet):
@@ -84,8 +84,7 @@ class SRSender(Device, OutMixIn):
         if dist >= self.window_size:
             self.dprint(f"outdated ack {ackno}")
         else:
-            assert dist >= 1
-            self.outbound[dist - 1].ack_received = True
+            self.outbound[dist].ack_received = True
             self.send_available()
         if len(self.outbound) == 0 and self.absno == len(self.message):
             self.finish_channel.put(True)

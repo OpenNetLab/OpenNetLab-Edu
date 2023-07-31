@@ -7,6 +7,7 @@ class Timer:
         env: Environment,
         timeout: SimTime,
         timeout_callback: Callable,
+        auto_restart: bool = False,
         args=None,
         kwargs=None
     ):
@@ -17,6 +18,7 @@ class Timer:
         self.timeout_callback = timeout_callback
         self.start_time = self.env.now
         self.expire_time = self.start_time + timeout
+        self.auto_restart = auto_restart
         self.stopped = False
         self.args = args if args is not None else []
         self.kwargs = kwargs if kwargs is not None else {}
@@ -28,6 +30,8 @@ class Timer:
                 yield self.env.timeout(self.expire_time - env.now)
                 if not self.stopped:
                     self.timeout_callback(*self.args, **self.kwargs)
+                    if self.auto_restart:
+                        self.expire_time = env.now + self.timeout
         except Interrupt as _:
             pass
 

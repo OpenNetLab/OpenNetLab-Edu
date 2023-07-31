@@ -31,7 +31,14 @@ class SRReceiver(Device, OutMixIn):
     def put(self, packet: Packet):
         seqno = packet.packet_id
         data = packet.payload
-        dist = (seqno + self.seqno_range - self.seqno_start) % self.window_size
+        if (seqno >= self.seqno_start - self.window_size) and (seqno <= self.seqno_start - 1):
+            ack_pkt = self.new_packet(seqno)
+            assert self.out
+            self.out.put(ack_pkt)
+            self.dprint(
+                f"send ack {self.seqno_start}"
+            )
+        dist = (seqno + self.seqno_range - self.seqno_start) % self.seqno_range
         if dist >= self.window_size:
             self.dprint(
                 f"discard {data} on invalid seqno: {seqno}"
@@ -43,9 +50,9 @@ class SRReceiver(Device, OutMixIn):
             assert cached_pkt
             self.message += cached_pkt.payload
             self.recv_window[self.recv_start] = None
+            ack_pkt = self.new_packet(self.seqno_start)
             self.recv_start = (self.recv_start + 1) % self.window_size
             self.seqno_start = (self.seqno_start + 1) % self.seqno_range
-            ack_pkt = self.new_packet(self.seqno_start)
             assert self.out
             self.out.put(ack_pkt)
             self.dprint(

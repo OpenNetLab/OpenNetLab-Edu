@@ -1,5 +1,5 @@
 {
-  "seqno_width": 2,
+  "seqno_width": 4,
   "loss_rate": 0.1,
   "max_delay": 30,
   "timeout": 60
