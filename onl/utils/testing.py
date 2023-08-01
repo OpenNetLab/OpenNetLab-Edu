@@ -38,6 +38,9 @@ class Testing(ABC):
     def judge_testcase(self, input, cfg, debug):
         """unimplement, subclass should implement this function"""
 
+    def compare_output_with_expected(self, output, expected_output) -> bool:
+        return output == expected_output
+
     def run_all_testcases(self):
         for index in range(1, len(self._testcases) + 1):
             self.run_testcase(index)
@@ -46,7 +49,7 @@ class Testing(ABC):
         else:
             print(f"Failed testcases: {self._failed}, grade is {self.grade}")
 
-    def check_testcase(self, testcase, key):
+    def _check(self, testcase, key):
         if key not in testcase:
             print(f"{FormatErr}: testcase{key}'s entry doesn't have input")
             sys.exit(1)
@@ -54,11 +57,11 @@ class Testing(ABC):
     def run_testcase(self, index: int):
         testcase = self._testcases[index - 1]
         cfg = testcase["config"] if "config" in testcase else None
-        self.check_testcase(testcase, "input")
+        self._check(testcase, "input")
         input = testcase["input"]
-        self.check_testcase(testcase, "output")
+        self._check(testcase, "output")
         expected_output = testcase["output"]
-        self.check_testcase(testcase, "rank")
+        self._check(testcase, "rank")
         rank = testcase["rank"]
 
         print(f"Running testcase {index}: ", end="", file=sys.__stdout__)
@@ -76,8 +79,7 @@ class Testing(ABC):
             output = self.judge_testcase(
                 input, cfg if cfg else self._global_cfg, self._debug
             )
-            if output == expected_output:
-                print("passed")
+            if self.compare_output_with_expected(output, expected_output):
                 passed = True
             else:
                 print(
@@ -95,6 +97,7 @@ class Testing(ABC):
 
         self._total_ranks += rank
         if passed:
+            print("passed", file=sys.__stdout__)
             self._get_ranks += rank
         else:
             self._failed.append(index)

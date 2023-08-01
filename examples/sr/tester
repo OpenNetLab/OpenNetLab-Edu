@@ -9,7 +9,7 @@ from receiver import SRReceiver
 
 
 class Tester(Testing):
-    def judge_testcase(self, input, cfg, debug):
+    def judge_testcase(self, input, cfg, debug) -> str:
         seqno_width = int(cfg["seqno_width"])
         window_size = int(cfg["window_size"])
         max_delay = int(cfg["max_delay"])
