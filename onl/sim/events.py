@@ -34,9 +34,9 @@ class Event:
 
     An event
 
-    - may happen (triggered is False),
-    - is going to happen (triggered is True) or
-    - has happened (processed is True).
+    - not triggered: may happen (`triggered` is False),
+    - triggered: is going to happen (`triggered` is True) or
+    - processed: has happened (`processed` is True).
 
     Every event is bound to an environment and is initially not triggered.
     Events are scheduled for processing by the environment after they are
@@ -49,8 +49,8 @@ class Event:
     examining ok and do further processing with the value it has produced.
 
     Failed events are never silently ignored and will raise an exception upon
-    being processed. If a callback handles an exception, it must set
-    :attr:`defused` to ``True`` to prevent this.
+    being processed. If a callback handles an exception, it must set `defused`
+    to True to prevent this.
 
     This class also implements __and__(), __or__() function. If you concatenate
     two events using one of these operators, a Condition event is generated
@@ -60,6 +60,10 @@ class Event:
 
     _ok: bool
     _defused: bool
+    # Initial value is PENDING, meaning the event has not been triggered
+    # The value can be many types:
+    # - If event failed, the value is the exception
+    # - If event succeed, the value is something passed to val by `val = yield event`
     _value: Any = PENDING
 
     def __init__(self, env: 'Environment'):

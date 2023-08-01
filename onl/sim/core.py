@@ -61,7 +61,7 @@ class BoundClass(Generic[T]):
 
 
 class EmptySchedule(Exception):
-    """Thrown by an :class:`Environment` if there are no further events to be
+    """Thrown by an Environment if there are no further events to be
     processed."""
 
 
@@ -161,7 +161,7 @@ class Environment:
         priority: EventPriority = NORMAL,
         delay: SimTime = 0,
     ) -> None:
-        """Schedule an *event* with a given *priority* and a *delay*."""
+        """Schedule an event with a given priority and a delay."""
         heappush(self._queue,
                  (self._now + delay, priority, next(self._eid), event))
 
@@ -189,9 +189,11 @@ class Environment:
 
         # Process callbacks of the event. Set the events callbacks to None
         # immediately to prevent concurrent modifications.
-
-        # print(f'now = {self._now}, handle event {event}')
         callbacks, event.callbacks = event.callbacks, None  # type: ignore
+
+        # If event has an exception, run its callback before handle the
+        # exception. In this way, the exception could be possibly be handled by
+        # event's callback.
         for callback in callbacks:
             callback(event)
 
@@ -199,6 +201,7 @@ class Environment:
             # The event has failed and has not been defused. Crash the
             # environment.
             # Create a copy of the failure exception with a new traceback.
+            # Multiple process can wait for the same failed event.
             exc = type(event._value)(*event._value.args)
             exc.__cause__ = event._value
             raise exc
@@ -206,24 +209,24 @@ class Environment:
     def run(
         self, until: Optional[Union[SimTime, Event]] = None
     ) -> Optional[Any]:
-        """Executes :meth:`step()` until the given criterion *until* is met.
+        """Executes step() until the given criterion until is met.
 
-        - If it is ``None`` (which is the default), this method will return
-          when there are no further events to be processed.
+        - If it is None (which is the default), this method will return when
+        there are no further events to be processed.
 
-        - If it is an :class:`~sim.events.Event`, the method will continue
-          stepping until this event has been triggered and will return its
-          value.  Raises a :exc:`RuntimeError` if there are no further events
-          to be processed and the *until* event was not triggered.
+        - If it is an Event, the method will continue stepping until this event
+        has been triggered and will return its value.  Raises a RuntimeError if
+        there are no further events to be processed and the until event was not
+        triggered.
 
-        - If it is a number, the method will continue stepping
-          until the environment's time reaches *until*.
+        - If it is a number, the method will continue stepping until the
+        environment's time reaches until.
 
         """
         if until is not None:
             if not isinstance(until, Event):
-                # Assume that *until* is a number if it is not None and
-                # not an event.  Create a Timeout(until) in this case.
+                # Assume that until is a number if it is not None and not an
+                # event. Create a Timeout(until) in this case.
                 at: SimTime
                 if isinstance(until, int):
                     at = until
@@ -245,6 +248,7 @@ class Environment:
                 # Until event has already been processed.
                 return until.value
 
+            # if until is an event and it has not been processed.
             until.callbacks.append(StopSimulation.callback)
 
         try:
