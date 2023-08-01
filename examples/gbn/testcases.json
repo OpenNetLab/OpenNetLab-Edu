@@ -27,7 +27,7 @@
     {
       "config": {
         "seqno_width": 2,
-        "window_size": 2,
+        "window_size": 3,
         "loss_rate": 0.2,
         "max_delay": 20,
         "timeout": 60
