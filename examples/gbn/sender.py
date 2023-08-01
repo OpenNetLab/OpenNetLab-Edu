@@ -18,18 +18,16 @@ class GBNSender(Device, OutMixIn):
         message: str,
         debug: bool = False,
     ):
+        self.env = env
         # the bits of the sequence number, which decides the sequence
         # number range and window size of selective repeat
         self.seqno_width = seqno_width
         self.seqno_range = 2**self.seqno_width
         self.window_size = window_size
-        assert self.window_size <= self.seqno_range // 2
         self.timeout = timeout
-        self.env = env
+        assert self.window_size <= self.seqno_range - 1
         self.debug = debug
         self.message = message
-        self.seqno_range = 2**self.seqno_width
-        self.window_size = self.seqno_range - 1
         # the sequence number of the next character to be sent
         self.seqno = 0
         # the absolute index of the next character to be sent
@@ -52,14 +50,13 @@ class GBNSender(Device, OutMixIn):
         return Packet(time=self.env.now, size=40, packet_id=seqno, payload=data)
 
     def send_available(self):
-        if self.absno < len(self.message):
-            while len(self.outbound) < self.window_size:
-                packet = self.new_packet(self.seqno, self.message[self.absno])
-                self.send_packet(packet)
-                self.seqno = (self.seqno + 1) % self.seqno_range
-                self.absno += 1
-                self.outbound.append(packet)
-            self.timer.restart(self.timeout)
+        while len(self.outbound) < self.window_size and self.absno < len(self.message):
+            packet = self.new_packet(self.seqno, self.message[self.absno])
+            self.send_packet(packet)
+            self.seqno = (self.seqno + 1) % self.seqno_range
+            self.absno += 1
+            self.outbound.append(packet)
+        self.timer.restart(self.timeout)
 
     def timeout_callback(self):
         self.dprint("timeout")

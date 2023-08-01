@@ -1,7 +1,6 @@
 __pycache__
 onl.egg-info
 docs
-judge
-results
 build
 venv
+logs

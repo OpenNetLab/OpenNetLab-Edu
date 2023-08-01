@@ -25,6 +25,7 @@ class SRSender(Device, OutMixIn):
         message: str,
         debug: bool = False,
     ):
+        self.env = env
         # the bits of the sequence number, which decides the sequence
         # number range and window size of selective repeat
         self.seqno_width = seqno_width
@@ -33,7 +34,6 @@ class SRSender(Device, OutMixIn):
         assert self.window_size <= self.seqno_range // 2
         # time interval for timeout resending
         self.timeout = timeout
-        self.env = env
         self.debug = debug
         self.message = message
         # the sequence number of the next character to be sent

@@ -14,15 +14,13 @@ class GBNReceiver(Device, OutMixIn):
         window_size: int,
         debug: bool = False,
     ):
+        self.env = env
         # the bits of the sequence number, which decides the sequence
         # number range and window size of selective repeat
         self.seqno_width = seqno_width
         self.seqno_range = 2**self.seqno_width
         self.window_size = window_size
-        assert self.window_size <= self.seqno_range // 2
-        self.env = env
-        self.seqno_range = 2**self.seqno_width
-        self.window_size = self.seqno_range - 1
+        assert self.window_size <= self.seqno_range - 1
         self.seqno_start = 0
         self.message = ""
         self.debug = debug

@@ -1,3 +1,4 @@
+import traceback
 import argparse
 import json
 import sys
@@ -92,6 +93,7 @@ class Testing(ABC):
                 f"falied\n"
                 f"exception: {e}"
             )
+            print(traceback.format_exc())
             pass
         finally:
             if self._log:
