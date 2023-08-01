@@ -39,12 +39,7 @@ class SRReceiver(Device, OutMixIn):
             self.seqno_start + self.seqno_range - self.window_size
         ) % self.seqno_range
         rwnd_start = self.seqno_start
-        if self.is_valid_seqno(lwnd_start, self.window_size, self.seqno_range, seqno):
-            ack_pkt = self.new_packet(seqno)
-            assert self.out
-            self.out.put(ack_pkt)
-            self.dprint(f"send ack {self.seqno_start}")
-        elif self.is_valid_seqno(rwnd_start, self.window_size, self.seqno_range, seqno):
+        if self.is_valid_seqno(rwnd_start, self.window_size, self.seqno_range, seqno):
             dist = (seqno + self.seqno_range - self.seqno_start) % self.seqno_range
             self.recv_window[(self.recv_start + dist) % self.window_size] = packet
             while self.recv_window[self.recv_start] is not None:
@@ -54,6 +49,11 @@ class SRReceiver(Device, OutMixIn):
                 self.recv_window[self.recv_start] = None
                 self.recv_start = (self.recv_start + 1) % self.window_size
                 self.seqno_start = (self.seqno_start + 1) % self.seqno_range
+            ack_pkt = self.new_packet(seqno)
+            assert self.out
+            self.out.put(ack_pkt)
+            self.dprint(f"send ack {self.seqno_start}")
+        elif self.is_valid_seqno(lwnd_start, self.window_size, self.seqno_range, seqno):
             ack_pkt = self.new_packet(seqno)
             assert self.out
             self.out.put(ack_pkt)

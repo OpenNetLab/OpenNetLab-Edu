@@ -6,7 +6,7 @@ from receiver import SRReceiver
 seqno_width = 4
 window_size = 8
 loss_rate = 0.1
-timeout = 30.0
+timeout = 30.0 
 message = """
 Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula
 eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient

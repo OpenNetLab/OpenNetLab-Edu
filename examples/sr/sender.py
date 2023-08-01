@@ -82,6 +82,7 @@ class SRSender(Device, OutMixIn):
         """Timeout callback for timer"""
         self.dprint(f"send {packet.payload} on seqno {packet.packet_id}")
         assert self.out
+        """Call Wire's put method to implement packet scheduling"""
         self.out.put(packet)
 
     def run(self, env: Environment):
