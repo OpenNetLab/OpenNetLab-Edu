@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from collections import deque
 from onl.packet import Packet
 from onl.device import Device, OutMixIn
-from onl.sim import Environment, Store, Event
+from onl.sim import Environment, Store
 from onl.utils import Timer
 
 
@@ -16,20 +16,26 @@ class QueueItem:
 
 
 class SRSender(Device, OutMixIn):
-    def __init__(self, env: Environment, message: str, debug: bool = False):
-        cfgpath = Path(__file__).parent.joinpath("lab_config.json")
-        with cfgpath.open() as fp:
-            cfg = json.load(fp)
-            # the bits of the sequence number, which decides the sequence
-            # number range and window size of selective repeat
-            self.seqno_width = int(cfg["seqno_width"])
-            # time interval for timeout resending
-            self.timeout = float(cfg["timeout"])
+    def __init__(
+        self,
+        env: Environment,
+        seqno_width: int,
+        timeout: float,
+        window_size: int,
+        message: str,
+        debug: bool = False,
+    ):
+        # the bits of the sequence number, which decides the sequence
+        # number range and window size of selective repeat
+        self.seqno_width = seqno_width
+        self.seqno_range = 2**self.seqno_width
+        self.window_size = window_size
+        assert self.window_size <= self.seqno_range // 2
+        # time interval for timeout resending
+        self.timeout = timeout
         self.env = env
         self.debug = debug
         self.message = message
-        self.seqno_range = 2**self.seqno_width
-        self.window_size = self.seqno_range // 2
         # the sequence number of the next character to be sent
         self.seqno = 0
         # the absolute index of the next character to be sent
@@ -59,7 +65,13 @@ class SRSender(Device, OutMixIn):
             self.seqno = (self.seqno + 1) % self.seqno_range
             self.absno += 1
             self.outbound.append(QueueItem(packet))
-            timer = Timer(self.env, self.timeout, self.timeout_callback, auto_restart=True, args=[packet])
+            timer = Timer(
+                self.env,
+                self.timeout,
+                self.timeout_callback,
+                auto_restart=True,
+                args=[packet],
+            )
             self.timers.append(timer)
 
     def timeout_callback(self, packet: Packet):

@@ -3,6 +3,10 @@ from onl.netdev import Wire
 from sender import SRSender
 from receiver import SRReceiver
 
+seqno_width = 4
+window_size = 8
+loss_rate = 0.1
+timeout = 30.0
 message = """
 Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula
 eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient
@@ -24,10 +28,22 @@ amet nibh. Donec sodales sagittis magna. Sed consequat, leo eget bibendum
 sodales, augue velit cursus nunc,
 """
 env = Environment()
-sender = SRSender(env, message, True)
-receiver = SRReceiver(env, True)
-wire1 = Wire(env, delay_dist=lambda: 10, loss_rate=0.1, debug=False)
-wire2 = Wire(env, delay_dist=lambda: 10)
+sender = SRSender(
+    env,
+    seqno_width=seqno_width,
+    timeout=timeout,
+    window_size=window_size,
+    message=message,
+    debug=True,
+)
+receiver = SRReceiver(
+    env,
+    seqno_width=seqno_width,
+    window_size=window_size,
+    debug=True
+)
+wire1 = Wire(env, delay_dist=lambda: 10, loss_rate=loss_rate, debug=False)
+wire2 = Wire(env, delay_dist=lambda: 10, loss_rate=loss_rate, debug=False)
 sender.out = wire1
 wire1.out = receiver
 receiver.out = wire2
