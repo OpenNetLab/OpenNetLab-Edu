@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
 
-from .packet import Packet
 from typing import Optional
 
 
 class Device(ABC):
     @abstractmethod
-    def put(self, packet: Packet):
+    def put(self, packet):
         """Put packet in this device.
         This function will be called in previous hop.
         """

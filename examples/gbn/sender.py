@@ -1,11 +1,10 @@
 import json
 from typing import Deque
 from pathlib import Path
-from dataclasses import dataclass
 from collections import deque
 from onl.packet import Packet
 from onl.device import Device, OutMixIn
-from onl.sim import Environment, Store, Event
+from onl.sim import Environment, Store
 from onl.utils import Timer
 
 

@@ -39,11 +39,11 @@ class DNSPacket:  # 一个DNS Frame实例，用于解析和生成DNS帧
         self.qclass = (msg[idx + 2] << 8) + msg[idx + 3]
 
     def generate_response(self, ip: str, intercepted: bool) -> bytes:
-        '''
+        """
         TODO: 根据IP地址构建DNS应答数据包，其中intercepted参数表示是否对该客户端请求的域名
         进行拦截
         1. 如果intercepted为True的话，
-        '''
+        """
         if not intercepted:
             res = bytearray(32 + self.name_length)
             res[0] = self.ID >> 8
@@ -61,8 +61,8 @@ class DNSPacket:  # 一个DNS Frame实例，用于解析和生成DNS帧
             for i in range(12, 16 + self.name_length):
                 res[i] = self.data[i]
             idx = self.name_length + 16
-            res[idx] = 0xc0
-            res[idx + 1] = 0x0c
+            res[idx] = 0xC0
+            res[idx + 1] = 0x0C
             res[idx + 2] = 0x0
             res[idx + 3] = 0x1
             res[idx + 4] = 0x0
@@ -73,7 +73,7 @@ class DNSPacket:  # 一个DNS Frame实例，用于解析和生成DNS帧
             res[idx + 9] = self.default_TTL % 256
             res[idx + 10] = 0x0
             res[idx + 11] = 0x4
-            ip_tup = ip.split(sep='.')
+            ip_tup = ip.split(sep=".")
             res[idx + 12] = int(ip_tup[0])
             res[idx + 13] = int(ip_tup[1])
             res[idx + 14] = int(ip_tup[2])
@@ -102,10 +102,11 @@ class DNSPacket:  # 一个DNS Frame实例，用于解析和生成DNS帧
     @classmethod
     def generate_request(cls, url: str) -> bytes:
         import random
+
         id = random.randint(0, 65535)
         res = bytearray(12)
-        res[0] = (id & 0xff)
-        res[1] = (id >> 8)
+        res[0] = id & 0xFF
+        res[1] = id >> 8
         res[2] = 0x01
         res[3] = 0x00
         res[4] = 0x00
@@ -116,29 +117,16 @@ class DNSPacket:  # 一个DNS Frame实例，用于解析和生成DNS帧
         res[9] = 0x00
         res[10] = 0x00
         res[11] = 0x00
-        octets = url.split('.')
+        octets = url.split(".")
         question = bytearray(len(url) + 2 + 4)
         idx = 0
         for oct in octets:
             question[idx] = len(oct)
             idx += 1
-            question[idx:idx+len(oct)] = oct.encode()
+            question[idx : idx + len(oct)] = oct.encode()
             idx += len(oct)
         question[idx] = 0x00
-        assert idx+5 == len(question)
-        question[idx+1:idx+3] = b'\x00\x01'
-        question[idx+3:idx+5] = b'\x00\x01'
-        return bytes(res+question)
-
-
-if __name__ == '__main__':
-    from dnslib import DNSRecord
-    urls = [
-        'www.baidu.com',
-        'www.google.com',
-        'epc.ustc.edu.cn'
-    ]
-    for url in urls:
-        a = DNSPacket.generate_request(url)
-        b = DNSRecord.question(url).pack()
-        assert a[2:] == b[2:]
+        assert idx + 5 == len(question)
+        question[idx + 1 : idx + 3] = b"\x00\x00"
+        question[idx + 3 : idx + 5] = b"\x00\x00"
+        return bytes(res + question)

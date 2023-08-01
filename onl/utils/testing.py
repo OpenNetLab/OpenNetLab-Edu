@@ -87,7 +87,11 @@ class Testing(ABC):
                     f"expected output: {expected_output}\nyour output: {output}",
                     file=sys.__stdout__,
                 )
-        except Exception as _:
+        except Exception as e:
+            print(
+                f"falied\n"
+                f"exception: {e}"
+            )
             pass
         finally:
             if self._log:
