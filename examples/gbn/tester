@@ -4,8 +4,8 @@ from onl.utils import Testing
 
 from onl.sim import Environment
 from onl.netdev import Wire
-from sender import SRSender
-from receiver import SRReceiver
+from sender import GBNSender
+from receiver import GBNReceiver
 
 
 class Tester(Testing):
@@ -18,7 +18,7 @@ class Tester(Testing):
         assert type(input) == str
         message = input
         env = Environment()
-        sender = SRSender(
+        sender = GBNSender(
             env,
             seqno_width=seqno_width,
             timeout=timeout,
@@ -26,7 +26,7 @@ class Tester(Testing):
             message=message,
             debug=debug,
         )
-        receiver = SRReceiver(
+        receiver = GBNReceiver(
             env,
             seqno_width=seqno_width,
             window_size=window_size,

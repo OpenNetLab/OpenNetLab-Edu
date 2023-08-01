@@ -7,15 +7,19 @@ from onl.sim import Environment
 
 
 class GBNReceiver(Device, OutMixIn):
-    def __init__(self, env: Environment, debug: bool = False):
-        cfgpath = Path(__file__).parent.joinpath('lab_config.json')
-        with cfgpath.open() as fp:
-            cfg = json.load(fp)
-            # the bits of the sequence number, which decides the sequence
-            # number range and window size of selective repeat
-            self.seqno_width = int(cfg["seqno_width"])
-            # time interval for timeout resending
-            self.timeout = float(cfg["timeout"])
+    def __init__(
+        self,
+        env: Environment,
+        seqno_width: int,
+        window_size: int,
+        debug: bool = False,
+    ):
+        # the bits of the sequence number, which decides the sequence
+        # number range and window size of selective repeat
+        self.seqno_width = seqno_width
+        self.seqno_range = 2**self.seqno_width
+        self.window_size = window_size
+        assert self.window_size <= self.seqno_range // 2
         self.env = env
         self.seqno_range = 2**self.seqno_width
         self.window_size = self.seqno_range - 1

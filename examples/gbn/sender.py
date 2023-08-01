@@ -9,15 +9,22 @@ from onl.utils import Timer
 
 
 class GBNSender(Device, OutMixIn):
-    def __init__(self, env: Environment, message: str, debug: bool = False):
-        cfgpath = Path(__file__).parent.joinpath("lab_config.json")
-        with cfgpath.open() as fp:
-            cfg = json.load(fp)
-            # the bits of the sequence number, which decides the sequence
-            # number range and window size of selective repeat
-            self.seqno_width = int(cfg["seqno_width"])
-            # time interval for timeout resending
-            self.timeout = float(cfg["timeout"])
+    def __init__(
+        self,
+        env: Environment,
+        seqno_width: int,
+        timeout: float,
+        window_size: int,
+        message: str,
+        debug: bool = False,
+    ):
+        # the bits of the sequence number, which decides the sequence
+        # number range and window size of selective repeat
+        self.seqno_width = seqno_width
+        self.seqno_range = 2**self.seqno_width
+        self.window_size = window_size
+        assert self.window_size <= self.seqno_range // 2
+        self.timeout = timeout
         self.env = env
         self.debug = debug
         self.message = message
@@ -33,7 +40,12 @@ class GBNSender(Device, OutMixIn):
         self.outbound: Deque[Packet] = deque()
         # use `self.finish_channel.put(True)` to termiate the sending process
         self.finish_channel: Store = Store(env)
-        self.timer = Timer(self.env, self.timeout, auto_restart=True, timeout_callback=self.timeout_callback)
+        self.timer = Timer(
+            self.env,
+            self.timeout,
+            auto_restart=True,
+            timeout_callback=self.timeout_callback,
+        )
         self.proc = env.process(self.run(env))
 
     def new_packet(self, seqno: int, data: str) -> Packet:
@@ -69,14 +81,14 @@ class GBNSender(Device, OutMixIn):
         ackno = packet.packet_id
         if self.is_valid_ackno(ackno):
             num = (ackno + self.seqno_range - self.seqno_start) % self.seqno_range + 1
-            for i in range(num):
+            for _ in range(num):
                 self.outbound.popleft()
                 self.seqno_start = (self.seqno_start + 1) % self.seqno_range
         self.send_available()
 
         if len(self.outbound) == 0 and self.absno == len(self.message):
             self.finish_channel.put(True)
-     
+
     def is_valid_ackno(self, ackno):
         if ackno < 0 and ackno >= self.seqno_range:
             return False
