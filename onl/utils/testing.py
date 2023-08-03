@@ -30,6 +30,8 @@ class Testing(ABC):
         self._log = False
         self._log_dir = testcases_path.parent.joinpath("logs")
         self._log_file_template = "testcase{:d}.log"
+        self._gen_json = False
+        self._json_path = testcases_path.parent.joinpath("logs", "results.json")
 
     @property
     def grade(self):
@@ -50,6 +52,14 @@ class Testing(ABC):
         else:
             print(f"Failed testcases: {self._failed}, grade is {self.grade}")
 
+        if self._gen_json:
+            result_data = {
+                "failed": self._failed,
+                "grade": self.grade
+            }
+            with self._json_path.open("w") as jsonfp:
+                json.dump(result_data, jsonfp)
+
     def _check(self, testcase, key):
         if key not in testcase:
             print(f"{FormatErr}: testcase{key}'s entry doesn't have input")
@@ -69,8 +79,6 @@ class Testing(ABC):
         log_file = None
         passed = False
         if self._log:
-            if not self._log_dir.exists():
-                self._log_dir.mkdir()
             log_file_path = self._log_dir.joinpath(
                 self._log_file_template.format(index)
             )
@@ -133,12 +141,23 @@ class Testing(ABC):
             action="store_true",
             help="redirect testcase output to a log file",
         )
+        parser.add_argument(
+            "-j",
+            "--json",
+            action="store_true",
+            help="generate a json file to store testing results",
+        )
         args = parser.parse_args()
         if args.debug:
             self._debug = True
         if args.log:
             self._debug = True
             self._log = True
+        if args.json:
+            self._gen_json = True
+        if args.log or args.json:
+            if not self._log_dir.exists():
+                self._log_dir.mkdir()
         if args.testcase:
             assert type(args.testcase) == int
             if not (1 <= args.testcase <= len(self._testcases)):
