@@ -1,31 +1,14 @@
-<h1 align="center">onl Demo</h1>
+<h1 align="center">onl library</h1>
 
-## installation
+## Introduction
+
+onl is a library which is built for network education. It can be regarded as a simplified version of ns3 which is written in python.
+You can build up network expirements for education using this library.
+
+For more details, see [this site](https://opennetlab.github.io/OpenNetLab-Edu-Doc/html/index.html)
+
+## Installation
 
 ```
-python3 -m pip install . --user
+python3 -m pip install .
 ```
-
-## experiment examples
-
-check out example experiments implemented using onl
-
-* [Simple Example](./examples/simple/README.md)
-* [GBN ARQ Protocol Experiment](./examples/gbn_sender/README.md)
-* [SR ARQ Prototol Experiment](./examples/sr_sender/README.md)
-
-## docs
-
-documentation is generate by [sphinx](https://www.sphinx-doc.org/en/master/#)
-
-## roadmap
-
-- [x] Basic onl package implementation
-- [x] Basic Documentation
-- [x] Simple Example implementation
-- [x] GBN sender lab implementation
-- [x] SR sender lab implementation
-- [ ] more robust error handling
-- [ ] explicit coding interface for students
-- [ ] DNS lab implementation
-- [ ] TLS lab implementation
