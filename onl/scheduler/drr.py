@@ -54,6 +54,11 @@ class DRR(MultiQueueScheduler):
 
                         if packet.size <= self.deficit[flow_id]:
                             yield env.process(self.send_packet(packet))
+                            self.deficit[flow_id] -= packet.size
+                            if self.queue_count[flow_id] == 0:
+                                self.deficit[flow_id] = 0.0
+                            if self.debug:
+                                print(f"Deficit reduced to {self.deficit[flow_id]} for {flow_id}")
                         else:
                             assert not flow_id in self.head_of_line
                             self.head_of_line[flow_id] = packet
