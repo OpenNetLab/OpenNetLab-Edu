@@ -11,6 +11,14 @@ class Device(ABC):
         """
         pass
 
+    @property
+    def element_id(self):
+        return self._element_id
+
+    @element_id.setter
+    def element_id(self, val):
+        self._element_id = val
+
 
 class OutMixIn:
     def __init__(self):
@@ -24,3 +32,8 @@ class OutMixIn:
     @out.setter
     def out(self, val) -> None:
         self._out = val
+
+
+class SingleDevice(Device, OutMixIn):
+    def __init__(self):
+        pass

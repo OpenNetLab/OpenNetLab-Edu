@@ -15,7 +15,7 @@ class Port(Device, OutMixIn):
         rate: float,
         qlimit: int,
         limit_bytes: bool,
-        element_id: int,
+        element_id: str,
         debug: bool = False,
     ):
         self.env = env
@@ -32,8 +32,11 @@ class Port(Device, OutMixIn):
         """Element Id of this port"""
         self.debug = debug
         self.byte_size = 0
+        """Byte sum of all packets in buffer."""
         self.packets_received = 0
+        """Total packets received."""
         self.packets_dropped = 0
+        """Total packets dropped."""
         self.busy = 0
         self.action = env.process(self.run(env))
 

@@ -2,11 +2,11 @@ import random
 from typing import Callable, Optional
 
 from ..packet import Packet
-from ..device import Device, OutMixIn
+from ..device import SingleDevice
 from ..sim import Environment, Store
 
 
-class Wire(Device, OutMixIn):
+class Wire(SingleDevice):
     """Implements a network wire (cable) that introduces a propagation delay.
     Set the "out" member variable to the entity to receive the packet.
 

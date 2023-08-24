@@ -28,7 +28,7 @@ class Packet:
         self.flow_id = flow_id
         self.payload = payload
 
-        self.color = None
+        self.color: str = ''
         self.priorities = {}
         self.ack = 0
         self.current_time: SimTime = 0
