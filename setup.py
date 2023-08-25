@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="onl",
-    version="0.3",
+    version="0.5",
     author="zdszero",
     author_email="dingzifeng8@gmail.com",
     description="onl for education 2023 By USTC",

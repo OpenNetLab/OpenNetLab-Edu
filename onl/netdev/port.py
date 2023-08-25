@@ -38,16 +38,24 @@ class Port(Device, OutMixIn):
         self.packets_dropped = 0
         """Total packets dropped."""
         self.busy = 0
+        self.busy_packet_size = 0
         self.action = env.process(self.run(env))
 
     def run(self, env: Environment):
         while True:
             packet = yield self.store.get()
+
+            self.busy = 1
+            self.busy_packet_size = packet.size
+
             if self.rate > 0:
                 yield env.timeout(packet.size * 8 / self.rate)
                 self.byte_size -= packet.size
             if self.out:
                 self.out.put(packet)
+
+            self.busy = 0
+            self.busy_packet_size = 0
 
     def put(self, packet: Packet):
         self.packets_received += 1
