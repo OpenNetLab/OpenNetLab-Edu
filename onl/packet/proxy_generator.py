@@ -6,11 +6,11 @@ from typing import Optional, Dict
 
 from ..types import *
 from ..sim import Environment
-from ..device import Device
+from ..device import Device, SingleDevice
 from .packet import Packet
 
 
-class ProxyPacketGenerator:
+class ProxyPacketGenerator(SingleDevice):
     """Serves as a proxy between a real-world network program and onl program."""
 
     def __init__(
