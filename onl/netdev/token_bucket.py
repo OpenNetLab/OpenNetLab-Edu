@@ -1,9 +1,9 @@
-from ..device import Device
+from ..device import SingleDevice
 from ..packet import Packet
-from ..sim import Store, PriorityItem, Environment
+from ..sim import Store, Environment
 
 
-class TokenBucket(Device):
+class TokenBucket(SingleDevice):
     """Implements a token bucket shaper.
 
     The token bucket size should be greater than the size of the largest packet
@@ -34,8 +34,7 @@ class TokenBucket(Device):
 
     def run(self, env: Environment):
         while True:
-            item: PriorityItem = yield self.store.get()
-            packet: Packet = item.item
+            packet: Packet = yield self.store.get()
             now = env.now
 
             self.current_bucket = min(
@@ -65,6 +64,6 @@ class TokenBucket(Device):
             if self.debug:
                 print(f"Sent packet {packet.packet_id} from flow {packet.flow_id}.")
 
-    def put(self, packet):
+    def put(self, packet: Packet):
         self.packets_received += 1
         self.store.put(packet)

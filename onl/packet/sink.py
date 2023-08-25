@@ -22,9 +22,15 @@ class PacketSink(Device):
     ):
         self.store = Store(env)
         self.env = env
+        # if True, the waiting times experienced by the packets are recorded
         self.rec_waits = rec_waits
+        # if True, the flow IDs that the packets are used as the index for recording;
+        # otherwise, the 'src' field in the packets are used
         self.rec_flow_ids = rec_flow_ids
+        # if True, arrivals will be recorded
         self.rec_arrivals = rec_arrivals
+        # if True absolute arrival times will be recorded, otherwise the time between
+        # consecutive arrivals is recorded.
         self.absolute_arrivals = absolute_arrivals
         self.waits = dd(list)
         self.arrivals = dd(list)

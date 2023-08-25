@@ -1,6 +1,6 @@
 from ..device import Device
 from .port import Port
-from .demux import FlowDemux
+from .demux import FIBDemux, FlowDemux
 from ..scheduler import *
 
 
@@ -78,7 +78,7 @@ class FairPacketSwitch(Device):
             self.egress_ports.append(egress_port)
             self.ports.append(scheduler)
 
-        self.demux = FlowDemux(outs=self.egress_ports, default_out=None)
+        self.demux = FIBDemux(fib=None, outs=self.egress_ports, default_out=None)
 
-        def put(self, packet):
-            self.demux.put(packet)
+    def put(self, packet):
+        self.demux.put(packet)

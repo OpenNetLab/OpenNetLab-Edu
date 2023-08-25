@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from random import choices
 
 from ..device import Device
@@ -30,3 +30,35 @@ class RandomDemux:
     def put(self, packet: Packet):
         self.packets_recevied += 1
         choices(self.outs, weights=self.probs)[0].put(packet)
+
+
+class FIBDemux(Device):
+    def __init__(
+        self,
+        outs: List[Device],
+        fib: Optional[Dict[int, int]] = None,
+        default_out: Optional[Device] = None,
+    ):
+        self._fib = fib
+        self.outs = outs
+        self.default_out = default_out
+        self.packets_recevied = 0
+
+    @property
+    def fib(self):
+        return self._fib
+
+    @fib.setter
+    def fib(self, val):
+        self._fib = val
+
+    def put(self, packet):
+        if not self._fib:
+            raise ValueError('fib of FIBDemux is None')
+        self.packets_recevied += 1
+        try:
+            self.outs[self._fib[packet.flow_id]].put(packet)
+        except (KeyError, IndexError, ValueError) as exc:
+            print("FIB Demux Error: " + str(exc))
+            if self.default_out:
+                self.default_out.put(packet)

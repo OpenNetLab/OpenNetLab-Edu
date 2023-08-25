@@ -27,7 +27,7 @@ class DRR(MultiQueueScheduler):
             self.quantum[flow_id] = self.MIN_QUANTUM * weight / min_weight
         self.head_of_line = dict()
         self.active_set = set()
-        # self.proc = env.process(self.run(env))
+        self.proc = env.process(self.run(env))
 
     def run(self, env: Environment) -> ProcessGenerator:
         while True:
@@ -37,7 +37,7 @@ class DRR(MultiQueueScheduler):
                     if count > 0:
                         self.deficit[flow_id] += self.quantum[flow_id]
                         self.dprint(
-                            f"Flow queue length: {self.queue_count}, "
+                            f"Flow queue length: {self.queue_count[flow_id]}, "
                             f"deficit counters: {self.deficit}")
                     while self.deficit[flow_id] > 0 and self.queue_count[flow_id] > 0:
                         if flow_id in self.head_of_line:
@@ -57,11 +57,10 @@ class DRR(MultiQueueScheduler):
                             self.deficit[flow_id] -= packet.size
                             if self.queue_count[flow_id] == 0:
                                 self.deficit[flow_id] = 0.0
-                            if self.debug:
-                                print(f"Deficit reduced to {self.deficit[flow_id]} for {flow_id}")
+                            self.dprint(f"Deficit reduced to {self.deficit[flow_id]} for {flow_id}")
                         else:
                             assert not flow_id in self.head_of_line
                             self.head_of_line[flow_id] = packet
                             break
-                if self.total_packets == 0:
-                    yield self.packets_available.get()
+            if self.total_packets == 0:
+                yield self.packets_available.get()
