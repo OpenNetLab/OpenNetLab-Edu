@@ -324,7 +324,8 @@ class Process(Event):
             # Get next event from process
             try:
                 if event._ok:
-                    # get the next event yiled in generator
+                    # Get the next event yield in generator, add _resume to its
+                    # callback. This event might not be scheduled immediately.
                     event = self._generator.send(event._value)
                 else:
                     # The process has no choice but to handle the failed event
@@ -384,9 +385,9 @@ class Process(Event):
 
 
 class ConditionValue:
-    """Result of a :class:`~sim.events.Condition`. It supports convenient
-    dict-like access to the triggered events and their values. The events are
-    ordered by their occurences in the condition."""
+    """Result of a Condition. It supports convenient dict-like access to the
+    triggered events and their values. The events are ordered by their
+    occurences in the condition."""
 
     def __init__(self):
         self.events: List[Event] = []
@@ -428,22 +429,21 @@ class ConditionValue:
 
 
 class Condition(Event):
-    """An event that gets triggered once the condition function *evaluate*
-    returns ``True`` on the given list of *events*.
+    """An event that gets triggered once the condition function evaluate
+    returns True on the given list of events.
 
-    The value of the condition event is an instance of :class:`ConditionValue`
-    which allows convenient access to the input events and their values. The
-    :class:`ConditionValue` will only contain entries for those events that
-    occurred before the condition is processed.
+    The value of the condition event is an instance of ConditionValue which
+    allows convenient access to the input events and their values. The
+    ConditionValue will only contain entries for those events that occurred
+    before the condition is processed.
 
     If one of the events fails, the condition also fails and forwards the
     exception of the failing event.
 
-    The *evaluate* function receives the list of target events and the number
-    of processed events in this list: ``evaluate(events, processed_count)``. If
-    it returns ``True``, the condition is triggered. The
-    :func:`Condition.all_events()` and :func:`Condition.any_events()` functions
-    are used to implement *and* (``&``) and *or* (``|``) for events.
+    The evaluate function receives the list of target events and the number of
+    processed events in this list: evaluate(events, processed_count). If it
+    returns True, the condition is triggered. The Condition.all_events() and
+    Condition.any_events() functions are used to implement & and | for events.
 
     Condition events can be nested.
 
@@ -487,15 +487,14 @@ class Condition(Event):
         self.callbacks.append(self._build_value)
 
     def _desc(self) -> str:
-        """Return a string *Condition(evaluate, [events])*."""
+        """Return a string Condition(evaluate, [events])."""
         return (
             f'{self.__class__.__name__}('
             f'{self._evaluate.__name__}, {self._events})'
         )
 
     def _populate_value(self, value: ConditionValue) -> None:
-        """Populate the *value* by recursively visiting all nested
-        conditions."""
+        """Populate the value by recursively visiting all nested conditions."""
 
         for event in self._events:
             if isinstance(event, Condition):
@@ -526,7 +525,7 @@ class Condition(Event):
                 event._remove_check_callbacks()
 
     def _check(self, event: Event) -> None:
-        """Check if the condition was already met and schedule the *event* if
+        """Check if the condition was already met and schedule the event if
         so."""
         if self._value is not PENDING:
             return
@@ -556,9 +555,8 @@ class Condition(Event):
 
 
 class AllOf(Condition):
-    """A :class:`~sim.events.Condition` event that is triggered if all of
-    a list of *events* have been successfully triggered. Fails immediately if
-    any of *events* failed.
+    """A Condition event that is triggered if all of a list of events have been
+    successfully triggered. Fails immediately if any of events failed.
 
     """
 
@@ -567,9 +565,8 @@ class AllOf(Condition):
 
 
 class AnyOf(Condition):
-    """A :class:`~sim.events.Condition` event that is triggered if any of
-    a list of *events* has been successfully triggered. Fails immediately if
-    any of *events* failed.
+    """A Condition event that is triggered if any of a list of events has been
+    successfully triggered. Fails immediately if any of events failed.
 
     """
 

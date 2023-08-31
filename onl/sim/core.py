@@ -162,6 +162,14 @@ class Environment:
         delay: SimTime = 0,
     ) -> None:
         """Schedule an event with a given priority and a delay."""
+
+        """
+        Different events are scheduled at different time:
+
+        Initialize: when Process is created with env.process(generaotr)
+        Timeout: when Timeout is created
+        Process: when send raise StopIteration (the coroutine finish execution)
+        """
         heappush(self._queue,
                  (self._now + delay, priority, next(self._eid), event))
 

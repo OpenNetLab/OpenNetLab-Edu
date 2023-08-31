@@ -13,7 +13,6 @@ def test_operator_and(env):
         }
 
     env.process(process(env))
-    print('run')
     env.run()
 
 
