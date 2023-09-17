@@ -35,9 +35,18 @@ T = TypeVar('T')
 class BoundClass(Generic[T]):
     """Allows classes to behave like methods.
 
+    usage:
+    class SomeClass:
+        a = BoundClass(A) # a this a method which returns A()
+        b = BoundClass(B)
+
+        def __init__(self):
+            BoundClass.bind_early(self)
     """
 
     def __init__(self, cls: Type[T]):
+        """cls is the class bounded with the variable
+        """
         self.cls = cls
 
     def __get__(

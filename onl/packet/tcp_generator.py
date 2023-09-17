@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Callable, Optional, Dict
+from typing import Callable, Optional, Dict, Union
 
 from dataclasses import dataclass
 from ..sim import Environment, Store, ProcessGenerator
@@ -13,10 +13,10 @@ class Flow:
     """Keeping track of all the properties of a network flow"""
 
     flow_id: int
-    src: str
-    dst: str
-    start_time: float
-    finish_time: float
+    src: Union[str, int]
+    dst: Union[str, int]
+    start_time: Optional[float] = None
+    finish_time: Optional[float] = None
     # the total data size in bytes from this flow
     size: Optional[int] = None
     # arrival time distribution
