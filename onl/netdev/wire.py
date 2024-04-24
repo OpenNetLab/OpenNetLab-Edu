@@ -61,4 +61,23 @@ class Wire(SingleDevice):
         if self.debug:
             print(f"Entered wire #{self.wire_id} at {self.env.now}: {packet}")
         packet.current_time = self.env.now
-        return self.store.put(packet)
+        self.store.put(packet)
+
+
+class Cable:
+    def __init__(
+        self,
+        env: "Environment",
+        delay_dist: Callable[[], float],
+        loss_rate: Optional[float] = None,
+        wire_id: int = 0,
+        debug: bool = False,
+    ):
+        self.wire1 = Wire(env, delay_dist, loss_rate, wire_id, debug)
+        self.wire2 = Wire(env, delay_dist, loss_rate, wire_id + 1, debug)
+
+    def set_endpoints(self, dev1: SingleDevice, dev2: SingleDevice):
+        dev1.out = self.wire1
+        self.wire1.out = dev2
+        dev2.out = self.wire2
+        self.wire2.out = dev1

@@ -50,7 +50,7 @@ switch.egress_ports[0].limit_bytes = True
 pg1.out = switch
 pg2.out = switch
 switch.ports[0].out = ps
-switch.demux._fib = {0: 0, 1: 0}
+switch.demux.fib = {0: 0, 1: 0}
 
 env.run()
 

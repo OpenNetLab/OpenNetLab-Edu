@@ -1,6 +1,6 @@
 import uuid
 from collections import defaultdict as dd
-from typing import DefaultDict, List
+from typing import DefaultDict, List, Callable
 
 from ..sim.events import ProcessGenerator
 from ..types import *
@@ -16,11 +16,13 @@ class Scheduler(Device, OutMixIn):
         self,
         env: Environment,
         rate: float,
+        flow2class: Callable = lambda fid: fid,
         debug: bool = False,
     ):
         self.env = env
         self.rate = rate
         self.debug = debug
+        self.flow2class = flow2class
 
         self.element_id = uuid.uuid4()
         self.queue_byte_size: DefaultDict[FlowId, int] = dd(lambda: 0)
@@ -87,7 +89,7 @@ class Scheduler(Device, OutMixIn):
     def run(self, env: Environment) -> ProcessGenerator:
         raise NotImplementedError("run(env) is not implemented in Scheduler class")
 
-    def put(self, pakcet: Packet):
+    def put(self, packet: Packet):
         raise NotImplementedError("put(packet) is not implemented in Scheduler class")
 
 
@@ -101,9 +103,10 @@ class MultiQueueScheduler(Scheduler):
         self,
         env: Environment,
         rate: float,
+        flow2class: Callable = lambda fid: fid,
         debug: bool = False,
     ):
-        super().__init__(env, rate, debug)
+        super().__init__(env, rate, flow2class, debug)
         self.stores: DefaultDict[FlowId, Store] = dd(lambda: Store(env))
         """Packets with the same flow_id is stored in the same subqueue.
         Each Store is regarded as a subqueue.

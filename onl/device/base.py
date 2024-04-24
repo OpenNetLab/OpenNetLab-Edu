@@ -4,7 +4,6 @@ from typing import Optional
 
 
 class Device(ABC):
-    @abstractmethod
     def put(self, packet):
         """Put packet in this device.
         This function will be called in previous hop.

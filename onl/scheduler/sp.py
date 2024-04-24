@@ -1,4 +1,5 @@
-from typing import Dict
+from typing import Dict, Callable
+
 from ..types import *
 from ..sim import Environment, ProcessGenerator
 from ..packet import Packet
@@ -13,9 +14,10 @@ class SP(MultiQueueScheduler):
         env: Environment,
         rate: float,
         priorities: Dict[FlowId, Priority],
+        flow2class: Callable = lambda fid: fid,
         debug: bool = False,
     ):
-        super().__init__(env, rate, debug)
+        super().__init__(env, rate, flow2class, debug)
         self.priorities = sorted(priorities.items(), key=lambda item: item[1], reverse=True)
         self.proc = env.process(self.run(env))
 
@@ -27,7 +29,8 @@ class SP(MultiQueueScheduler):
                     if store.size() == 0:
                         continue
                     packet: Packet = yield store.get()
-                    packet.priorities[self.element_id] = prio
+                    print(packet)
+                    packet.priorities[self.flow2class(packet.flow_id)] = prio
                     yield env.process(self.send_packet(packet))
             if self.total_packets == 0:
                 yield self.packets_available.get()

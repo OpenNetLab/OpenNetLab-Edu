@@ -35,4 +35,4 @@ class Packet:
         self.perhop_time = {}  # used by port to record per-hop arrival times
 
     def __repr__(self) -> str:
-        return f"did: {self.packet_id}, src:  {self.src}, time: {self.time}, size: {self.size}"
+        return f"packet id: {self.packet_id}, flow id: {self.flow_id}, src: {self.src}, time: {self.time}, size: {self.size}"

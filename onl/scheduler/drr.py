@@ -1,4 +1,5 @@
-from typing import Dict
+from typing import Dict, Callable
+
 from ..types import *
 from ..sim import Environment, ProcessGenerator
 from ..packet import Packet
@@ -15,52 +16,54 @@ class DRR(MultiQueueScheduler):
         env: Environment,
         rate: float,
         weights: Dict[FlowId, int],
+        flow2class: Callable = lambda fid: fid,
         debug: bool = False,
     ):
-        super().__init__(env, rate, debug)
+        super().__init__(env, rate, flow2class, debug)
         self.deficit: Dict[FlowId, float] = dict()
         self.quantum: Dict[FlowId, float] = dict()
         min_weight = min(weights.values())
-        for flow_id, weight in weights.items():
-            self.deficit[flow_id] = 0.0
-            self.queue_count[flow_id] = 0
-            self.quantum[flow_id] = self.MIN_QUANTUM * weight / min_weight
+        for class_id, weight in weights.items():
+            self.deficit[class_id] = 0.0
+            self.queue_count[class_id] = 0
+            self.quantum[class_id] = self.MIN_QUANTUM * weight / min_weight
         self.head_of_line = dict()
         self.active_set = set()
+        self.flow2class = flow2class
         self.proc = env.process(self.run(env))
 
     def run(self, env: Environment) -> ProcessGenerator:
         while True:
             while self.total_packets > 0:
                 counts = self.queue_count.items()
-                for flow_id, count in counts:
+                for class_id, count in counts:
                     if count > 0:
-                        self.deficit[flow_id] += self.quantum[flow_id]
+                        self.deficit[class_id] += self.quantum[class_id]
                         self.dprint(
-                            f"Flow queue length: {self.queue_count[flow_id]}, "
+                            f"Flow queue length: {self.queue_count[class_id]}, "
                             f"deficit counters: {self.deficit}")
-                    while self.deficit[flow_id] > 0 and self.queue_count[flow_id] > 0:
-                        if flow_id in self.head_of_line:
-                            packet = self.head_of_line[flow_id]
-                            del self.head_of_line[flow_id]
+                    while self.deficit[class_id] > 0 and self.queue_count[class_id] > 0:
+                        if class_id in self.head_of_line:
+                            packet = self.head_of_line[class_id]
+                            del self.head_of_line[class_id]
                         else:
-                            store = self.stores[flow_id]
+                            store = self.stores[class_id]
                             packet = yield store.get()
 
-                        if packet.size <= self.deficit[flow_id]:
+                        if packet.size <= self.deficit[class_id]:
                             self.current_packet = packet
                         
-                        assert flow_id == packet.flow_id
+                        assert class_id == self.flow2class(packet.flow_id)
 
-                        if packet.size <= self.deficit[flow_id]:
+                        if packet.size <= self.deficit[class_id]:
                             yield env.process(self.send_packet(packet))
-                            self.deficit[flow_id] -= packet.size
-                            if self.queue_count[flow_id] == 0:
-                                self.deficit[flow_id] = 0.0
-                            self.dprint(f"Deficit reduced to {self.deficit[flow_id]} for {flow_id}")
+                            self.deficit[class_id] -= packet.size
+                            if self.queue_count[class_id] == 0:
+                                self.deficit[class_id] = 0.0
+                            self.dprint(f"Deficit reduced to {self.deficit[class_id]} for {class_id}")
                         else:
-                            assert not flow_id in self.head_of_line
-                            self.head_of_line[flow_id] = packet
+                            assert not class_id in self.head_of_line
+                            self.head_of_line[class_id] = packet
                             break
             if self.total_packets == 0:
                 yield self.packets_available.get()

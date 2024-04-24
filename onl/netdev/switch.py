@@ -1,8 +1,9 @@
+from typing import Callable
+
 from ..device import Device
 from .port import Port
 from .demux import FIBDemux, FlowDemux
 from ..scheduler import *
-
 
 class SimplePacketSwitch(Device):
     """Implements a packet switch with a FIFO bounded buffer on each of the
@@ -44,6 +45,7 @@ class FairPacketSwitch(Device):
         weights: dict,
         server: str,
         element_id: str = "",
+        flow2class: Callable = lambda fid: fid,
         debug: bool = False,
     ):
         self.env = env
@@ -62,13 +64,13 @@ class FairPacketSwitch(Device):
 
             scheduler = None
             if server == "SP":
-                scheduler = SP(env, rate=port_rate, priorities=weights, debug=debug)
+                scheduler = SP(env, rate=port_rate, priorities=weights, flow2class=flow2class, debug=debug)
             elif server == "VirtualClock":
-                scheduler = VC(env, rate=port_rate, vticks=weights, debug=debug)
+                scheduler = VC(env, rate=port_rate, vticks=weights, flow2class=flow2class, debug=debug)
             elif server == "WFQ":
-                scheduler = WFQ(env, rate=port_rate, weights=weights, debug=debug)
+                scheduler = WFQ(env, rate=port_rate, weights=weights, flow2class=flow2class, debug=debug)
             elif server == "DRR":
-                scheduler = DRR(env, rate=port_rate, weights=weights, debug=debug)
+                scheduler = DRR(env, rate=port_rate, weights=weights, flow2class=flow2class, debug=debug)
             else:
                 raise ValueError(
                     "Scheduler type must be 'WFQ', 'DRR', 'SP', or 'VirtualClock'."
